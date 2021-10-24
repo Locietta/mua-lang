@@ -1,1 +1,1 @@
-./mua < in
+./src/mua < in
