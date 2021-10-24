@@ -1,1 +1,1 @@
-java -cp .:mua/src O
+./mua < in
