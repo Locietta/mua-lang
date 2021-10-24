@@ -5,10 +5,7 @@
 using namespace std;
 
 const static unordered_set<TokenTag> funcs{
-    TokenTag::MAKE,
-    TokenTag::THING,
-    TokenTag::PRINT,
-    TokenTag::READ,
+    TokenTag::MAKE,  TokenTag::THING, TokenTag::PRINT, TokenTag::READ,
     TokenTag::DEFER, // `:`
 };
 
@@ -39,6 +36,21 @@ string Token::getWordVal() const {
     return val.get<TypeTag::WORD>().content;
 }
 
+bool Token::isNumber() const {
+    if (tag == TokenTag::WORD) {
+        const auto &w = val.get<TypeTag::WORD>();
+        if (w.isNumber()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return tag == TokenTag::NUMBER;
+}
+
 double Token::getNumber() const {
+    if (tag == TokenTag::WORD) {
+        return stod(getWordVal());
+    }
     return val.get<TypeTag::NUMBER>().value;
 }

@@ -23,7 +23,7 @@ struct Token {
     [[nodiscard]] bool isValue() const;
     [[nodiscard]] bool isOperator() const;
     [[nodiscard]] bool isWord() const { return tag == TokenTag::WORD; }
-    [[nodiscard]] bool isNumber() const { return tag == TokenTag::NUMBER; }
+    [[nodiscard]] bool isNumber() const; 
     [[nodiscard]] bool isList() const { return tag == TokenTag::LIST; }
     [[nodiscard]] bool isName() const { return tag == TokenTag::NAME; }
     [[nodiscard]] std::string getWordVal() const;
