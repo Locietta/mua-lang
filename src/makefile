@@ -25,9 +25,9 @@ INCS     = -I"./include"
 # 链接选项
 LDFLAGS  = -static-libgcc
 # C编译选项
-CFLAGS = $(INCS) -Werror -O2 -DNDEBUG
+CFLAGS = $(INCS) -Werror -O3 -DNDEBUG
 # C++编译选项
-CXXFLAGS = $(INCS) -Werror -O2 -DNDEBUG -std=c++17
+CXXFLAGS = $(INCS) -Werror -O3 -DNDEBUG -std=c++17
 
 # 为debug目标指定不同的C/C++编译选项
 debug: CXXFLAGS = $(INCS) -Wall -Wextra -O0 -g -std=c++17

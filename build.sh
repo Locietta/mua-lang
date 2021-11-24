@@ -3,4 +3,4 @@
 #echo "compiling"
 cd src
 make clean
-make
+make release
