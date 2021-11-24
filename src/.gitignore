@@ -4,3 +4,5 @@ build
 *.exe
 mua
 .vscode
+# clangd cache
+.cache
