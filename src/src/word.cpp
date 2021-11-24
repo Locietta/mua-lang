@@ -31,7 +31,7 @@ optional<TokenTag> word::op_matcher() const {
     if (auto it = operations.find(content); it != operations.end()) {
         return it->second;
     }
-    return nullopt;
+    return {};
 }
 
 word::word(string_view str, enum tag tag) : tag(tag), content(str) {}

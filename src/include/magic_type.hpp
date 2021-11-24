@@ -91,7 +91,7 @@ private:
 };
 
 template <TypeTag tg_>
-class MagicData : public Base {
+class MagicData final : public Base {
     template <TypeTag tag>
     using type_of = meta::type_of<tag>;
     typename type_of<tg_>::type d_data;

@@ -56,6 +56,8 @@ vector<Token> lexer::lex() {
                     if (auto op_tag = temp.op_matcher()) {
                         res.emplace_back(op_tag.value());
                         continue;
+                    } else {
+                        // throw 1;
                     }
                 }
 
