@@ -3,19 +3,19 @@
 
 #include <ostream>
 
-class lexer;
+class Lexer;
 namespace std {
 extern std::ostream cout;
 } // namespace std
 
-class parser {
+class Parser {
 private:
-    lexer &m_lexer;
-    std::ostream &out;
-    int listLevel = 0;
+    Lexer &lexer_;
+    std::ostream &out_;
+    int list_level_ = 0;
 
 public:
-    parser(class lexer &lexer, std::ostream &out = std::cout) : m_lexer(lexer), out(out) {}
+    Parser(class Lexer &lexer, std::ostream &out = std::cout) : lexer_(lexer), out_(out) {}
     void run();
 };
 

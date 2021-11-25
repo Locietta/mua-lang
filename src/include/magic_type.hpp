@@ -82,12 +82,12 @@ public:
 
     virtual ~Base() = default;
     [[nodiscard]] TypeTag tag() const { return baseTag; }
-    [[nodiscard]] Base *clone() const { return vClone(); }
-    [[nodiscard]] void *data() const { return vData(); }
+    [[nodiscard]] Base *clone() const { return vClone_(); }
+    [[nodiscard]] void *data() const { return vData_(); }
 
 private:
-    [[nodiscard]] virtual Base *vClone() const = 0;
-    [[nodiscard]] virtual void *vData() const = 0;
+    [[nodiscard]] virtual Base *vClone_() const = 0;
+    [[nodiscard]] virtual void *vData_() const = 0;
 };
 
 template <TypeTag tg_>
@@ -108,8 +108,8 @@ public:
     }
 
 private:
-    [[nodiscard]] Base *vClone() const override { return new MagicData<tg_>{*this}; }
-    [[nodiscard]] void *vData() const override {
+    [[nodiscard]] Base *vClone_() const override { return new MagicData<tg_>{*this}; }
+    [[nodiscard]] void *vData_() const override {
         return const_cast<typename type_of<tg_>::type *>(&d_data_);
     }
 };

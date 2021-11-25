@@ -7,7 +7,13 @@ CheckOptions:
   - key:             readability-identifier-naming.EnumConstantCase
     value:           UPPER_CASE
   - key:             readability-identifier-naming.FunctionCase
-    value:           CamelBack
+    value:           CamelCase
+  - key:             readability-identifier-naming.MethodCase
+    value:           camelBack
+  - key:             readability-identifier-naming.PrivateMethodCase
+    value:           camelBack
+  - key:             readability-identifier-naming.PrivateMethodSuffix
+    value:           _
   - key:             readability-identifier-naming.MemberCase
     value:           camelBack
   - key:             readability-identifier-naming.PrivateMemberSuffix
