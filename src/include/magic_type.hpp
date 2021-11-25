@@ -6,10 +6,10 @@
 #include <utility>
 
 /// Forward Declaration
-class word;
-class number;
-class boolean;
-class list;
+class Word;
+class Number;
+class Boolean;
+class List;
 
 enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
 
@@ -20,53 +20,53 @@ struct type_of;
 
 template <>
 struct type_of<TypeTag::NUMBER> {
-    using type = number;
+    using type = Number;
 };
 
 template <>
 struct type_of<TypeTag::BOOLEAN> {
-    using type = boolean;
+    using type = Boolean;
 };
 
 template <>
 struct type_of<TypeTag::WORD> {
-    using type = word;
+    using type = Word;
 };
 
 template <>
 struct type_of<TypeTag::LIST> {
-    using type = list;
+    using type = List;
 };
 
 template <typename T>
 struct tag_of;
 
 template <>
-struct tag_of<number> {
+struct tag_of<Number> {
     static TypeTag const tag = TypeTag::NUMBER;
 };
 
 template <>
-struct tag_of<boolean> {
+struct tag_of<Boolean> {
     static TypeTag const tag = TypeTag::BOOLEAN;
 };
 
 template <>
-struct tag_of<word> {
+struct tag_of<Word> {
     static TypeTag const tag = TypeTag::WORD;
 };
 
 template <>
-struct tag_of<list> {
+struct tag_of<List> {
     static TypeTag const tag = TypeTag::LIST;
 };
 
 template <typename T, typename U>
 inline constexpr bool same = std::is_same_v<T, U>;
 
-template <typename T>
+template <typename T, typename U = std::remove_cv_t<std::remove_reference_t<T>>>
 inline constexpr bool type_check =
-    same<T, number> || same<T, word> || same<T, boolean> || same<T, list>;
+    same<U, Number> || same<U, Word> || same<U, Boolean> || same<U, List>;
 
 } // namespace meta
 
@@ -94,23 +94,23 @@ template <TypeTag tg_>
 class MagicData final : public Base {
     template <TypeTag tag>
     using type_of = meta::type_of<tag>;
-    typename type_of<tg_>::type d_data;
+    typename type_of<tg_>::type d_data_;
 
 public:
     MagicData() { baseTag = tg_; }
-    MagicData(MagicData<tg_> const &other) : d_data(other.d_data) {
+    MagicData(MagicData<tg_> const &other) : d_data_(other.d_data_) {
         baseTag = other.baseTag;
     } // req'd for cloning
 
     template <typename... Params>
-    MagicData(Params &&...params) : d_data(std::forward<Params>(params)...) {
+    MagicData(Params &&...params) : d_data_(std::forward<Params>(params)...) {
         baseTag = tg_;
     }
 
 private:
     [[nodiscard]] Base *vClone() const override { return new MagicData<tg_>{*this}; }
     [[nodiscard]] void *vData() const override {
-        return const_cast<typename type_of<tg_>::type *>(&d_data);
+        return const_cast<typename type_of<tg_>::type *>(&d_data_);
     }
 };
 
@@ -133,7 +133,6 @@ public:
     ~MagicType() = default;
 
     MagicType &operator=(MagicType const &rhs);
-    MagicType &operator=(MagicType &rhs);
     MagicType &operator=(MagicType &&tmp) noexcept;
     /// generic assignment (Perfect Forwarding)
     template <typename T>
@@ -174,11 +173,6 @@ public:
 };
 
 inline MagicType &MagicType::operator=(MagicType const &rhs) {
-    if (&rhs != this) reset(rhs->clone());
-    return *this;
-}
-
-inline MagicType &MagicType::operator=(MagicType &rhs) {
     if (&rhs != this) reset(rhs->clone());
     return *this;
 }
