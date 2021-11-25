@@ -39,32 +39,38 @@ struct type_of<TypeTag::LIST> {
 };
 
 template <typename T>
-struct tag_of;
+using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
+
+template <typename T>
+struct tag_of_impl;
+
+template <typename T>
+using tag_of = tag_of_impl<remove_cvref_t<T>>;
 
 template <>
-struct tag_of<Number> {
+struct tag_of_impl<Number> {
     static TypeTag const tag = TypeTag::NUMBER;
 };
 
 template <>
-struct tag_of<Boolean> {
+struct tag_of_impl<Boolean> {
     static TypeTag const tag = TypeTag::BOOLEAN;
 };
 
 template <>
-struct tag_of<Word> {
+struct tag_of_impl<Word> {
     static TypeTag const tag = TypeTag::WORD;
 };
 
 template <>
-struct tag_of<List> {
+struct tag_of_impl<List> {
     static TypeTag const tag = TypeTag::LIST;
 };
 
 template <typename T, typename U>
 inline constexpr bool same = std::is_same_v<T, U>;
 
-template <typename T, typename U = std::remove_cv_t<std::remove_reference_t<T>>>
+template <typename T, typename U = remove_cvref_t<T>>
 inline constexpr bool type_check =
     same<U, Number> || same<U, Word> || same<U, Boolean> || same<U, List>;
 
