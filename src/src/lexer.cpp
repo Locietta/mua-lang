@@ -98,7 +98,10 @@ static string ExtractListWord(istream &in) {
 
 const static unordered_map<string_view, TokenTag> operations{
     {"make", TokenTag::MAKE}, {"thing", TokenTag::THING}, {"print", TokenTag::PRINT},
-    {"read", TokenTag::READ}, {"add", TokenTag::ADD},     {"sub", TokenTag::SUB},
+    {"read", TokenTag::READ}, {"erase", TokenTag::ERASE}, {"isname", TokenTag::IS_NAME},
+    {"isname", TokenTag::IS_NUMBER},{"isname", TokenTag::IS_WORD},{"isname", TokenTag::IS_LIST},
+    {"isname", TokenTag::IS_BOOL},{"isname", TokenTag::IS_EMPTY},{"isname", TokenTag::IF},
+    {"run", TokenTag::RUN},   {"add", TokenTag::ADD},     {"sub", TokenTag::SUB},
     {"mul", TokenTag::MUL},   {"div", TokenTag::DIV},     {"mod", TokenTag::MOD}};
 
 const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},

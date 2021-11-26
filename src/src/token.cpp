@@ -6,11 +6,15 @@ using namespace std;
 
 const static unordered_set<TokenTag> funcs{
     TokenTag::MAKE,  TokenTag::THING, TokenTag::PRINT, TokenTag::READ,
-    TokenTag::DEFER, // `:`
+    TokenTag::DEFER, TokenTag::ERASE, TokenTag::RUN, TokenTag::IS_NAME,
+    TokenTag::IS_NUMBER,TokenTag::IS_WORD,TokenTag::IS_LIST,TokenTag::IS_BOOL,
+    TokenTag::IS_EMPTY, TokenTag::IF
 };
 
 const static unordered_set<TokenTag> operators{
     TokenTag::ADD, TokenTag::SUB, TokenTag::MUL, TokenTag::DIV, TokenTag::MOD,
+    TokenTag::EQ, TokenTag::GT, TokenTag::LT, TokenTag::AND, TokenTag::OR,
+    TokenTag::NOT,
 };
 
 const static unordered_set<TokenTag> values{

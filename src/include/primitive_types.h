@@ -14,7 +14,8 @@ struct Word {
     // [[nodiscard]] bool isBool() const;
     // [[nodiscard]] bool isName() const;
     operator std::string_view() const { return value; }
-    Word(std::string_view str);
+    Word(std::string_view sv);
+    Word(std::string &&str) : value(move(str)) {}
 };
 
 struct Number {
@@ -42,6 +43,10 @@ struct Number {
 struct Boolean {
     bool value;
     operator bool() const { return value; }
+    Boolean invert() {
+        value = !value;
+        return *this;
+    }
     Boolean(std::string_view str);
     Boolean(bool b);
 };

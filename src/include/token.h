@@ -7,9 +7,11 @@
 
 // clang-format off
 enum class TokenTag {
-    MAKE, THING, PRINT, READ, DEFER,
-    ADD, SUB, MUL, DIV, MOD,
+    MAKE, THING, PRINT, READ, DEFER, ERASE, RUN,
+    IS_NAME, IS_NUMBER, IS_WORD, IS_LIST, IS_BOOL, IS_EMPTY,
+    ADD, SUB, MUL, DIV, MOD, EQ, GT, LT, AND, OR, NOT,
     WORD, BOOL, NUMBER, LIST, NAME,
+    IF,
     END_OF_INPUT
 };
 // clang-format on
