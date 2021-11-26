@@ -1,8 +1,14 @@
 #include "lexer.h"
+#include "list.h"
 #include "magic_type.hpp"
+#include "primitive_types.h"
+#include "string_view_ext.hpp"
 #include "token.h"
-#include "word.h"
+#include <cctype>
+#include <cstddef>
+#include <istream>
 #include <optional>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -11,69 +17,121 @@
 
 using namespace std;
 
-static vector<string> list_breaker(string_view sv) {
-    vector<string> res;
-    size_t i, j;
-    for (i = 0, j = 0; j < sv.size(); ++j) {
-        if (sv[j] == '[' || sv[j] == ']') {
-            if (i != j) res.emplace_back(sv.substr(i, j - i));
-            res.emplace_back(sv.substr(j, 1));
-            i = j + 1;
+/* Static Function Declarations */
+
+static optional<TokenTag> OpMatcher(string_view str);
+
+static string ExtractListWord(istream &in);
+
+static MagicType ListLiteralMatcher(string_view sv);
+
+static Token GlobalMatcher(string_view sv);
+
+/* Methods Implementation */
+
+Lexer::Lexer(std::istream &in) : in_{in} {}
+
+Token Lexer::lex() {
+    const auto ch = peekInput_();
+    if (ch == '"') { // a word literal
+        string tmp;
+        in_ >> tmp;
+        return {TokenTag::WORD, Word(tmp.substr(1))};
+    }
+
+    if (ch == '[') { // a list literal
+        return {TokenTag::LIST, parseList_()};
+    }
+
+    if (ch == ':') { // a defer op
+        in_.get();
+        return {TokenTag::DEFER};
+    }
+
+    string tmp;
+    in_ >> tmp;
+    return GlobalMatcher(tmp);
+}
+
+List Lexer::parseList_() {
+    in_.get(); // eat '['
+    List list;
+
+    while (true) {
+        const char ch = peekInput_();
+        if (ch == '[') {
+            list.emplace_back(parseList_());
+        } else if (ch == ']') {
+            in_.get();
+            break;
+        } else {
+            string tmp = ExtractListWord(in_);
+            list.emplace_back(ListLiteralMatcher(tmp));
         }
     }
-    if (i < sv.size()) {
-        res.emplace_back(sv.substr(i));
-    }
+
+    return list;
+}
+
+char Lexer::peekInput_() {
+    char res;
+    // use `>>` instead of `peek()` to ignore spaces
+    if ((in_ >> res).eof()) throw "Reach eof of input stream!";
+    in_.unget();
     return res;
 }
 
-lexer::lexer(std::istream &in) : in{in} {}
+/* Static Function Implementation */
 
-vector<Token> lexer::lex() {
-    vector<Token> res;
-    string buf, tmp;
-    while (in >> tmp) {
-        int i;
-        for (i = 0; tmp[i] == ':' && !inList; ++i) { // strip `:`
-            res.emplace_back(TokenTag::DEFER);
-        }
-        tmp = tmp.substr(i);
-        if (tmp.front() == '"' && !inList) {
-            res.emplace_back(TokenTag::WORD, word(tmp.substr(1)));
-            tmp.clear();
-        }
-        auto segments = list_breaker(tmp);
-        for (const auto &s : segments) {
-            if (s[0] == '[') {
-                res.emplace_back(TokenTag::LIST_BEGIN);
-                inList++;
-            } else if (s[0] == ']') {
-                res.emplace_back(TokenTag::LIST_END);
-                inList--;
-            } else {
-                word temp(s);
-                if (!inList) {
-                    if (auto op_tag = temp.op_matcher()) {
-                        res.emplace_back(op_tag.value());
-                        continue;
-                    } else {
-                        // throw 1;
-                    }
-                }
-
-                if (temp.isBool()) {
-                    res.emplace_back(TokenTag::BOOL, boolean(temp.content == "true"));
-                } else if (temp.isNumber()) {
-                    res.emplace_back(TokenTag::NUMBER, number(temp.content));
-                } else {
-                    if (!inList && !temp.isName()) throw 1; // TODO: invalid name
-                    res.emplace_back(inList ? TokenTag::WORD : TokenTag::NAME, move(temp));
-                }
-            }
-        }
+static string ExtractListWord(istream &in) {
+    string tmp;
+    while (true) {
+        const auto ch = in.peek();
+        if (in.eof()) throw "Unmatched brackets";
+        if (isspace(ch) || ch == '[' || ch == ']') break;
+        tmp.push_back(in.get());
     }
+    return tmp;
+}
 
-    if (inList) throw 1; // TODO : Syntax exception: unmatched `[]`
+const static unordered_map<string_view, TokenTag> operations{
+    {"make", TokenTag::MAKE}, {"thing", TokenTag::THING}, {"print", TokenTag::PRINT},
+    {"read", TokenTag::READ}, {"add", TokenTag::ADD},     {"sub", TokenTag::SUB},
+    {"mul", TokenTag::MUL},   {"div", TokenTag::DIV},     {"mod", TokenTag::MOD}};
 
-    return res;
+const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
+    name_matcher{R"([a-zA-Z][a-zA-Z0-9_]*)"};
+
+static optional<TokenTag> OpMatcher(string_view str) {
+    if (auto it = operations.find(str); it != operations.end()) {
+        return it->second;
+    }
+    return {};
+}
+
+static MagicType ListLiteralMatcher(string_view sv) {
+    if (regex_match(sv, number_matcher)) {
+        return Number(svto<double>(sv));
+    }
+    if (sv == "true" || sv == "false") {
+        return Boolean(sv == "true");
+    }
+    return Word(sv);
+}
+
+/// Parse number, boolean and names(&ops) here
+static Token GlobalMatcher(string_view sv) {
+    if (regex_match(sv, number_matcher)) {
+        return {TokenTag::NUMBER, Number(svto<double>(sv))};
+    }
+    if (sv == "true" || sv == "false") {
+        return {TokenTag::BOOL, Boolean(sv == "true")};
+    }
+    if (regex_match(sv, name_matcher)) {
+        if (auto op_tag = OpMatcher(sv)) {
+            return {op_tag.value()};
+        }
+        return {TokenTag::NAME, Word(sv)};
+    }
+    throw "Invalid name!";
 }

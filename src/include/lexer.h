@@ -2,22 +2,26 @@
 #define _LEXER_H_
 
 #include <istream>
-#include <vector>
+#include <sstream>
+// #include <vector>
 
 class Token;
+class List;
 
 namespace std {
 extern std::istream cin;
-}
+} // namespace std
 
-class lexer {
+class Lexer {
 private:
-    int inList = 0;
-    std::istream &in;
+    // std::istringstream buf_;
+    std::istream &in_;
+    List parseList_();
+    char peekInput_();
 
 public:
-    lexer(std::istream &in = std::cin);
-    std::vector<Token> lex();
+    Lexer(std::istream &in = std::cin);
+    Token lex();
 };
 
 #endif // _LEXER_H_

@@ -8,9 +8,6 @@
 
 using namespace std;
 
-const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
-    name_matcher{R"([a-zA-Z][a-zA-Z0-9_]*)"};
-
 // bool Word::isBool() const {
 //     return content == "true" || content == "false";
 // }
@@ -23,7 +20,7 @@ const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
 //     return regex_match(content, number_matcher);
 // }
 
-Word::Word(string_view str) : content(str) {}
+Word::Word(string_view str) : value(str) {}
 
 Number::Number(double d) : value(d) {}
 

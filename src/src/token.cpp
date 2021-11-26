@@ -1,5 +1,5 @@
 #include "token.h"
-#include "word.h"
+#include "primitive_types.h"
 #include <unordered_set>
 
 using namespace std;
@@ -33,18 +33,14 @@ bool Token::isValue() const {
 }
 
 string Token::getWordVal() const {
-    return val.get<TypeTag::WORD>().content;
+    return val.get<TypeTag::WORD>().value;
 }
 
 bool Token::isNumber() const {
-    if (tag == TokenTag::WORD) {
-        const auto &w = val.get<TypeTag::WORD>();
-        if (w.isNumber()) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+    // if (tag == TokenTag::WORD) { // FIXME: shouldn't have WORD to NUMBER convertion
+    //     const auto &w = val.get<TypeTag::WORD>();
+    //     // return w.isNumber(); 
+    // }
     return tag == TokenTag::NUMBER;
 }
 
