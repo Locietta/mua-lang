@@ -1,6 +1,7 @@
 #ifndef _MAGIC_TYPE_HPP_
 #define _MAGIC_TYPE_HPP_
 
+#include <cassert>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -159,7 +160,7 @@ public:
     template <TypeTag tg>
     typename type_of<tg>::type &get() {
         if (tag() != tg) {
-            // TODO: unmatched types error
+            assert(false && "Unmatched Type!");
         }
         return *static_cast<typename type_of<tg>::type *>((*this)->data());
     }
@@ -167,7 +168,7 @@ public:
     template <TypeTag tg>
     typename type_of<tg>::type const &get() const {
         if (tag() != tg) {
-            // TODO: unmatched types error
+            assert(false && "Unmatched Type!");
         }
         return *static_cast<typename type_of<tg>::type *>((*this)->data());
     }
