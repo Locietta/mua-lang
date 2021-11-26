@@ -12,7 +12,7 @@ enum class TokenTag {
     ADD, SUB, MUL, DIV, MOD, EQ, GT, LT, AND, OR, NOT,
     WORD, BOOL, NUMBER, LIST, NAME,
     IF,
-    END_OF_INPUT
+    END_OF_INPUT, UNKNOWN
 };
 // clang-format on
 

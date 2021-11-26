@@ -19,8 +19,6 @@ using namespace std;
 
 /* Static Function Declarations */
 
-static optional<TokenTag> OpMatcher(string_view str);
-
 static string ExtractListWord(istream &in);
 
 static MagicType ListLiteralMatcher(string_view sv);
@@ -97,21 +95,24 @@ static string ExtractListWord(istream &in) {
 }
 
 const static unordered_map<string_view, TokenTag> operations{
-    {"make", TokenTag::MAKE}, {"thing", TokenTag::THING}, {"print", TokenTag::PRINT},
-    {"read", TokenTag::READ}, {"erase", TokenTag::ERASE}, {"isname", TokenTag::IS_NAME},
-    {"isname", TokenTag::IS_NUMBER},{"isname", TokenTag::IS_WORD},{"isname", TokenTag::IS_LIST},
-    {"isname", TokenTag::IS_BOOL},{"isname", TokenTag::IS_EMPTY},{"isname", TokenTag::IF},
-    {"run", TokenTag::RUN},   {"add", TokenTag::ADD},     {"sub", TokenTag::SUB},
-    {"mul", TokenTag::MUL},   {"div", TokenTag::DIV},     {"mod", TokenTag::MOD}};
+    {"make", TokenTag::MAKE},        {"thing", TokenTag::THING},
+    {"print", TokenTag::PRINT},      {"read", TokenTag::READ},
+    {"erase", TokenTag::ERASE},      {"isname", TokenTag::IS_NAME},
+    {"isname", TokenTag::IS_NUMBER}, {"isname", TokenTag::IS_WORD},
+    {"isname", TokenTag::IS_LIST},   {"isname", TokenTag::IS_BOOL},
+    {"isname", TokenTag::IS_EMPTY},  {"isname", TokenTag::IF},
+    {"run", TokenTag::RUN},          {"add", TokenTag::ADD},
+    {"sub", TokenTag::SUB},          {"mul", TokenTag::MUL},
+    {"div", TokenTag::DIV},          {"mod", TokenTag::MOD}};
 
 const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
-    name_matcher{R"([a-zA-Z][a-zA-Z0-9_]*)"};
+    name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
 
-static optional<TokenTag> OpMatcher(string_view str) {
+TokenTag Lexer::opMatcher(string_view str) {
     if (auto it = operations.find(str); it != operations.end()) {
         return it->second;
     }
-    return {};
+    return TokenTag::UNKNOWN;
 }
 
 static MagicType ListLiteralMatcher(string_view sv) {
@@ -133,8 +134,8 @@ static Token GlobalMatcher(string_view sv) {
         return {TokenTag::NUMBER, Number(svto<double>(sv))};
     }
     if (regex_match(sv, name_matcher)) {
-        if (auto op_tag = OpMatcher(sv)) {
-            return {op_tag.value()};
+        if (auto op_tag = Lexer::opMatcher(sv); op_tag != TokenTag::UNKNOWN) {
+            return op_tag;
         }
         return {TokenTag::NAME, Word(sv)};
     }

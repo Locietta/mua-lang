@@ -3,10 +3,12 @@
 
 #include <istream>
 #include <sstream>
+#include <string_view>
 // #include <vector>
 
 class Token;
 class List;
+enum class TokenTag;
 
 namespace std {
 extern std::istream cin;
@@ -20,6 +22,7 @@ private:
     char peekInput_() const;
 
 public:
+    static TokenTag opMatcher(std::string_view str);
     Lexer(std::istream &in = std::cin);
     Token lex();
     bool eof() const { return peekInput_() == 0; }
