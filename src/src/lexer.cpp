@@ -105,7 +105,7 @@ const static unordered_map<string_view, TokenTag> operations{
     {"mul", TokenTag::MUL},   {"div", TokenTag::DIV},     {"mod", TokenTag::MOD}};
 
 const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
-    name_matcher{R"([a-zA-Z0-9_]*)"};
+    name_matcher{R"([a-zA-Z][a-zA-Z0-9_]*)"};
 
 static optional<TokenTag> OpMatcher(string_view str) {
     if (auto it = operations.find(str); it != operations.end()) {
