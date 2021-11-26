@@ -95,15 +95,31 @@ static string ExtractListWord(istream &in) {
 }
 
 const static unordered_map<string_view, TokenTag> operations{
-    {"make", TokenTag::MAKE},        {"thing", TokenTag::THING},
-    {"print", TokenTag::PRINT},      {"read", TokenTag::READ},
-    {"erase", TokenTag::ERASE},      {"isname", TokenTag::IS_NAME},
-    {"isname", TokenTag::IS_NUMBER}, {"isname", TokenTag::IS_WORD},
-    {"isname", TokenTag::IS_LIST},   {"isname", TokenTag::IS_BOOL},
-    {"isname", TokenTag::IS_EMPTY},  {"isname", TokenTag::IF},
-    {"run", TokenTag::RUN},          {"add", TokenTag::ADD},
-    {"sub", TokenTag::SUB},          {"mul", TokenTag::MUL},
-    {"div", TokenTag::DIV},          {"mod", TokenTag::MOD}};
+    {"make", TokenTag::MAKE},
+    {"thing", TokenTag::THING},
+    {"print", TokenTag::PRINT},
+    {"read", TokenTag::READ},
+    {"erase", TokenTag::ERASE},
+    {"isname", TokenTag::IS_NAME},
+    {"isnumber", TokenTag::IS_NUMBER},
+    {"isword", TokenTag::IS_WORD},
+    {"islist", TokenTag::IS_LIST},
+    {"isbool", TokenTag::IS_BOOL},
+    {"isempty", TokenTag::IS_EMPTY},
+    {"if", TokenTag::IF},
+    {"run", TokenTag::RUN},
+    {"add", TokenTag::ADD},
+    {"sub", TokenTag::SUB},
+    {"mul", TokenTag::MUL},
+    {"div", TokenTag::DIV},
+    {"mod", TokenTag::MOD},
+    {"eq", TokenTag::EQ},
+    {"gt", TokenTag::GT},
+    {"lt", TokenTag::LT},
+    {"and", TokenTag::AND},
+    {"or", TokenTag::OR},
+    {"not", TokenTag::NOT},
+};
 
 TokenTag Lexer::opMatcher(string_view sv) {
     if (auto it = operations.find(sv); it != operations.end()) {
