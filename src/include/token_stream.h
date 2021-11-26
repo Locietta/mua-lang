@@ -3,6 +3,7 @@
 
 #include "lexer.h"
 #include "list.h"
+#include "magic_type.hpp"
 #include "ref_ptr.h"
 
 class Token;
@@ -12,12 +13,12 @@ private:
     enum Mode { LEXER, LIST };
     const Mode mode_;
     RefPtr<Lexer> lexer_;
-    RefPtr<List> list_;
+    List list_;
     List::iterator it_;
 
 public:
-    TokenStream(Lexer &lexer) : mode_(LEXER), lexer_(lexer) {}
-    TokenStream(List &list) : mode_(LEXER), list_(list), it_(list.begin()) {}
+    TokenStream(Lexer &lexer);
+    TokenStream(const List &list);
     bool empty() const noexcept;
     Token extract();
 };

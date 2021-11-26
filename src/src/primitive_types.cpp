@@ -20,7 +20,7 @@ using namespace std;
 //     return regex_match(content, number_matcher);
 // }
 
-Word::Word(string_view str) : value(str) {}
+Word::Word(string_view sv) : value(sv) {}
 
 Number::Number(double d) : value(d) {}
 

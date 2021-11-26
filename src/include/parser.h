@@ -14,7 +14,7 @@ class Parser {
 private:
     TokenStream &token_stream_;
     std::ostream &out_;
-    MagicType parse_() const;
+    MagicType parse_() const noexcept;
 
 public:
     Parser(TokenStream &tokStream, std::ostream &out = std::cout)

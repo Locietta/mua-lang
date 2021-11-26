@@ -8,11 +8,15 @@
 
 using std::string;
 
+TokenStream::TokenStream(Lexer &lexer) : mode_(LEXER), lexer_(lexer) {}
+
+TokenStream::TokenStream(const List &list) : mode_(LEXER), list_(list), it_(list_.begin()) {}
+
 bool TokenStream::empty() const noexcept {
     if (mode_ == Mode::LEXER) {
         return lexer_->eof();
     }
-    return it_ == list_->end();
+    return it_ == list_.end();
 }
 
 Token TokenStream::extract() {

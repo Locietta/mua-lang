@@ -8,6 +8,7 @@
 #include "token_stream.h"
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <map>
 #include <optional>
@@ -154,7 +155,7 @@ static bool operator>(const MagicType &lhs, const MagicType &rhs) {
     return false;
 }
 
-MagicType Parser::parse_() const {
+MagicType Parser::parse_() const noexcept try { // catch all exceptions
     auto tok = token_stream_.extract();
     if (tok.tag == TokenTag::END_OF_INPUT) {
         return {};
@@ -282,11 +283,25 @@ MagicType Parser::parse_() const {
         } break;
         case TokenTag::RUN: {
             auto list = parse_();
-
-            // TODO: run list
+            if (list.tag() != TypeTag::LIST) throw "`run` requires a <List>";
+            if ((IsEmpty(list))) return list;
+            
+            TokenStream list_stream(list.get<TypeTag::LIST>());
+            Parser local_parser(list_stream);
+            MagicType tmp;
+            while (!local_parser.token_stream_.empty()) {
+                tmp = local_parser.parse_();
+            }
+            return tmp;
         } break;
         default: assert(false);
         }
     }
     return {};
+} catch (const char *e) {
+    cerr << e << endl;
+    exit(1);
+} catch (...) {
+    cerr << "Internal Exception...\n";
+    exit(2);
 }
