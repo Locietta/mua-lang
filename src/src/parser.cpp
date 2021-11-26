@@ -26,7 +26,7 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
     case TypeTag::LIST: {
         out << "[ ";
         for (const auto &item : val.get<TypeTag::LIST>()) {
-            out << item;
+            out << item << ' ';
         }
         return out << " ]";
     } break;
@@ -155,6 +155,18 @@ static bool operator>(const MagicType &lhs, const MagicType &rhs) {
     return false;
 }
 
+MagicType Parser::runList_(List const &list) {
+    if (list.empty()) return list;
+
+    TokenStream list_stream(list);
+    Parser local_parser(list_stream);
+    MagicType tmp;
+    while (!local_parser.token_stream_.empty()) {
+        tmp = local_parser.parse_();
+    }
+    return tmp;
+}
+
 MagicType Parser::parse_() const noexcept try { // catch all exceptions
     auto tok = token_stream_.extract();
     if (tok.tag == TokenTag::END_OF_INPUT) {
@@ -279,20 +291,23 @@ MagicType Parser::parse_() const noexcept try { // catch all exceptions
             auto condition = parse_();
             auto branch1 = parse_();
             auto branch2 = parse_();
-            // TODO: run branches
+            if (condition.tag() != TypeTag::BOOLEAN || branch1.tag() != TypeTag::LIST ||
+                branch2.tag() != TypeTag::LIST) {
+                throw "Syntax Error: if <Bool> <List> <List>";
+            }
+            const auto &cond = condition.get<TypeTag::BOOLEAN>();
+            const auto &b1 = branch1.get<TypeTag::LIST>();
+            const auto &b2 = branch2.get<TypeTag::LIST>();
+            if (cond) {
+                return Parser::runList_(b1);
+            } else { // NOLINT
+                return Parser::runList_(b2);
+            }
         } break;
         case TokenTag::RUN: {
             auto list = parse_();
             if (list.tag() != TypeTag::LIST) throw "`run` requires a <List>";
-            if ((IsEmpty(list))) return list;
-            
-            TokenStream list_stream(list.get<TypeTag::LIST>());
-            Parser local_parser(list_stream);
-            MagicType tmp;
-            while (!local_parser.token_stream_.empty()) {
-                tmp = local_parser.parse_();
-            }
-            return tmp;
+            return Parser::runList_(list.get<TypeTag::LIST>());
         } break;
         default: assert(false);
         }

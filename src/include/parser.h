@@ -9,12 +9,14 @@ extern std::ostream cout;
 
 class MagicType;
 class TokenStream;
+class List;
 
 class Parser {
 private:
     TokenStream &token_stream_;
     std::ostream &out_;
     MagicType parse_() const noexcept;
+    static MagicType runList_(List const &list);
 
 public:
     Parser(TokenStream &tokStream, std::ostream &out = std::cout)
