@@ -3,11 +3,13 @@
 #include "list.h"
 #include "magic_type.hpp"
 #include "primitive_types.h"
+#include "string_view_ext.hpp"
 #include "token.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <ostream>
 #include <regex>
 #include <vector>
@@ -48,6 +50,31 @@ void Parser::run() {
     }
 }
 
+const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"};
+
+static optional<Number> Str2Number(string_view sv) {
+    if (regex_match(sv, number_matcher)) {
+        return svto<double>(sv);
+    }
+    return {};
+}
+
+static Number Magic2Number(const MagicType &arg) {
+    if (arg.tag() == TypeTag::NUMBER) {
+        return arg.get<TypeTag::NUMBER>();
+    }
+    if (arg.tag() == TypeTag::BOOLEAN) {
+        return Number(arg.get<TypeTag::BOOLEAN>() ? 1 : 0);
+    }
+    if (arg.tag() == TypeTag::WORD) {
+        if (auto num_opt = Str2Number(arg.get<TypeTag::WORD>())) {
+            return num_opt.value();
+        }
+        throw "Bad Conversion from <Word> to <Number>";
+    }
+    throw "Bad Conversion to <Number>";
+}
+
 MagicType Parser::parse_() const {
     auto tok = lexer_.lex();
     if (tok.tag == TokenTag::END_OF_INPUT) {
@@ -69,18 +96,13 @@ MagicType Parser::parse_() const {
         if (!arg1.valid() || !arg2.valid()) {
             throw "Unmatched oprand number";
         }
-        
+
         switch (tok.tag) {
-        case TokenTag::ADD:
-            return arg1.get<TypeTag::NUMBER>() + arg2.get<TypeTag::NUMBER>();
-        case TokenTag::SUB:
-            return arg1.get<TypeTag::NUMBER>() - arg2.get<TypeTag::NUMBER>();
-        case TokenTag::MUL:
-            return arg1.get<TypeTag::NUMBER>() * arg2.get<TypeTag::NUMBER>();
-        case TokenTag::DIV:
-            return arg1.get<TypeTag::NUMBER>() / arg2.get<TypeTag::NUMBER>();
-        case TokenTag::MOD:
-            return arg1.get<TypeTag::NUMBER>() % arg2.get<TypeTag::NUMBER>();
+        case TokenTag::ADD: return Magic2Number(arg1) + Magic2Number(arg2);
+        case TokenTag::SUB: return Magic2Number(arg1) - Magic2Number(arg2);
+        case TokenTag::MUL: return Magic2Number(arg1) * Magic2Number(arg2);
+        case TokenTag::DIV: return Magic2Number(arg1) / Magic2Number(arg2);
+        case TokenTag::MOD: return Magic2Number(arg1) % Magic2Number(arg2);
         default: assert(false);
         }
     }
@@ -116,9 +138,8 @@ MagicType Parser::parse_() const {
         case TokenTag::READ: {
             string read_buf;
             cin >> read_buf;
-            const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"};
-            if (regex_match(read_buf, number_matcher)) {
-                return Number(stod(read_buf));
+            if (auto num_opt = Str2Number(read_buf)) {
+                return num_opt.value();
             }
             return Word(read_buf);
         }
