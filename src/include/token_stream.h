@@ -8,7 +8,7 @@
 
 class Token;
 
-class TokenStream {
+class TokenStream { // TODO: consider virtual binding
 private:
     enum Mode { LEXER, LIST };
     const Mode mode_;
