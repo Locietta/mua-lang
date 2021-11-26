@@ -33,6 +33,8 @@ Lexer::Lexer(std::istream &in) : in_{in} {}
 
 Token Lexer::lex() {
     const auto ch = peekInput_();
+    if (ch == 0) return {TokenTag::END_OF_INPUT};
+
     if (ch == '"') { // a word literal
         string tmp;
         in_ >> tmp;
@@ -59,24 +61,24 @@ List Lexer::parseList_() {
 
     while (true) {
         const char ch = peekInput_();
+        if (ch == 0) throw "Unmatched brackets";
+
         if (ch == '[') {
             list.emplace_back(parseList_());
         } else if (ch == ']') {
             in_.get();
-            break;
+            return list;
         } else {
             string tmp = ExtractListWord(in_);
             list.emplace_back(ListLiteralMatcher(tmp));
         }
     }
-
-    return list;
 }
 
 char Lexer::peekInput_() {
     char res;
     // use `>>` instead of `peek()` to ignore spaces
-    if ((in_ >> res).eof()) throw "Reach eof of input stream!";
+    if ((in_ >> res).eof()) return 0; // eof of input stream
     in_.unget();
     return res;
 }

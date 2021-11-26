@@ -9,8 +9,8 @@
 enum class TokenTag {
     MAKE, THING, PRINT, READ, DEFER,
     ADD, SUB, MUL, DIV, MOD,
-    WORD, BOOL, NUMBER, LIST,
-    NAME
+    WORD, BOOL, NUMBER, LIST, NAME,
+    END_OF_INPUT
 };
 // clang-format on
 
