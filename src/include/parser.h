@@ -7,17 +7,18 @@ namespace std {
 extern std::ostream cout;
 } // namespace std
 
-class Lexer;
 class MagicType;
+class TokenStream;
 
 class Parser {
 private:
-    Lexer &lexer_;
+    TokenStream &token_stream_;
     std::ostream &out_;
     MagicType parse_() const;
 
 public:
-    Parser(class Lexer &lexer, std::ostream &out = std::cout) : lexer_(lexer), out_(out) {}
+    Parser(TokenStream &tokStream, std::ostream &out = std::cout)
+        : token_stream_(tokStream), out_(out) {}
     void run();
 };
 

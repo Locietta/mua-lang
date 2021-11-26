@@ -16,13 +16,14 @@ extern std::istream cin;
 
 class Lexer {
 private:
-    // std::istringstream buf_;
     std::istream &in_;
     List parseList_() const;
     char peekInput_() const;
 
 public:
-    static TokenTag opMatcher(std::string_view str);
+    static TokenTag opMatcher(std::string_view sv);
+    static bool nameMatcher(std::string_view sv);
+    static bool numberMatcher(std::string_view sv);
     Lexer(std::istream &in = std::cin);
     Token lex();
     bool eof() const { return peekInput_() == 0; }

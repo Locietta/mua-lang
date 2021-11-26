@@ -5,6 +5,7 @@
 #include "primitive_types.h"
 #include "string_view_ext.hpp"
 #include "token.h"
+#include "token_stream.h"
 #include <cassert>
 #include <cmath>
 #include <iostream>
@@ -46,12 +47,13 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
 }
 
 void Parser::run() {
-    while (!lexer_.eof()) {
+    while (!token_stream_.empty()) {
         parse_();
     }
 }
 
-const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"};
+const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
+    name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
 
 static optional<Number> Str2Number(string_view sv) {
     if (regex_match(sv, number_matcher)) {
@@ -153,7 +155,7 @@ static bool operator>(const MagicType &lhs, const MagicType &rhs) {
 }
 
 MagicType Parser::parse_() const {
-    auto tok = lexer_.lex();
+    auto tok = token_stream_.extract();
     if (tok.tag == TokenTag::END_OF_INPUT) {
         return {};
     }
@@ -237,7 +239,7 @@ MagicType Parser::parse_() const {
             return Word(read_buf);
         }
         case TokenTag::DEFER: {
-            auto name_tok = lexer_.lex();
+            auto name_tok = token_stream_.extract();
             if (name_tok.tag != TokenTag::NAME) {
                 throw "`:` require a <name> as argument";
             }
@@ -246,6 +248,42 @@ MagicType Parser::parse_() const {
                 return it->second;
             }
             return {};
+        } break;
+        case TokenTag::IS_NAME: {
+            auto val = parse_();
+            return Boolean(val.tag() == TypeTag::WORD &&
+                           regex_match(val.get<TypeTag::WORD>(), name_matcher));
+        } break;
+        case TokenTag::IS_NUMBER: {
+            auto val = parse_();
+            return Boolean(val.tag() == TypeTag::NUMBER);
+        } break;
+        case TokenTag::IS_WORD: {
+            auto val = parse_();
+            return Boolean(val.tag() == TypeTag::WORD);
+        } break;
+        case TokenTag::IS_LIST: {
+            auto val = parse_();
+            return Boolean(val.tag() == TypeTag::LIST);
+        } break;
+        case TokenTag::IS_BOOL: {
+            auto val = parse_();
+            return Boolean(val.tag() == TypeTag::BOOLEAN);
+        } break;
+        case TokenTag::IS_EMPTY: {
+            auto val = parse_();
+            return Boolean(IsEmpty(val));
+        } break;
+        case TokenTag::IF: {
+            auto condition = parse_();
+            auto branch1 = parse_();
+            auto branch2 = parse_();
+            // TODO: run branches
+        } break;
+        case TokenTag::RUN: {
+            auto list = parse_();
+
+            // TODO: run list
         } break;
         default: assert(false);
         }

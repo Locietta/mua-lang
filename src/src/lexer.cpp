@@ -105,18 +105,25 @@ const static unordered_map<string_view, TokenTag> operations{
     {"sub", TokenTag::SUB},          {"mul", TokenTag::MUL},
     {"div", TokenTag::DIV},          {"mod", TokenTag::MOD}};
 
-const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
-    name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
-
-TokenTag Lexer::opMatcher(string_view str) {
-    if (auto it = operations.find(str); it != operations.end()) {
+TokenTag Lexer::opMatcher(string_view sv) {
+    if (auto it = operations.find(sv); it != operations.end()) {
         return it->second;
     }
     return TokenTag::UNKNOWN;
 }
 
+bool Lexer::nameMatcher(std::string_view sv) {
+    const static regex name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
+    return regex_match(sv, name_matcher);
+}
+
+bool Lexer::numberMatcher(std::string_view sv) {
+    const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"};
+    return regex_match(sv, number_matcher);
+}
+
 static MagicType ListLiteralMatcher(string_view sv) {
-    if (regex_match(sv, number_matcher)) {
+    if (Lexer::numberMatcher(sv)) {
         return Number(svto<double>(sv));
     }
     if (sv == "true" || sv == "false") {
@@ -130,10 +137,10 @@ static Token GlobalMatcher(string_view sv) {
     if (sv == "true" || sv == "false") {
         return {TokenTag::BOOL, Boolean(sv == "true")};
     }
-    if (regex_match(sv, number_matcher)) {
+    if (Lexer::numberMatcher(sv)) {
         return {TokenTag::NUMBER, Number(svto<double>(sv))};
     }
-    if (regex_match(sv, name_matcher)) {
+    if (Lexer::nameMatcher(sv)) {
         if (auto op_tag = Lexer::opMatcher(sv); op_tag != TokenTag::UNKNOWN) {
             return op_tag;
         }
