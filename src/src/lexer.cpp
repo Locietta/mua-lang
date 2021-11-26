@@ -55,7 +55,7 @@ Token Lexer::lex() {
     return GlobalMatcher(tmp);
 }
 
-List Lexer::parseList_() {
+List Lexer::parseList_() const {
     in_.get(); // eat '['
     List list;
 
@@ -75,7 +75,7 @@ List Lexer::parseList_() {
     }
 }
 
-char Lexer::peekInput_() {
+char Lexer::peekInput_() const {
     char res;
     // use `>>` instead of `peek()` to ignore spaces
     if ((in_ >> res).eof()) return 0; // eof of input stream
@@ -123,11 +123,11 @@ static MagicType ListLiteralMatcher(string_view sv) {
 
 /// Parse number, boolean and names(&ops) here
 static Token GlobalMatcher(string_view sv) {
-    if (regex_match(sv, number_matcher)) {
-        return {TokenTag::NUMBER, Number(svto<double>(sv))};
-    }
     if (sv == "true" || sv == "false") {
         return {TokenTag::BOOL, Boolean(sv == "true")};
+    }
+    if (regex_match(sv, number_matcher)) {
+        return {TokenTag::NUMBER, Number(svto<double>(sv))};
     }
     if (regex_match(sv, name_matcher)) {
         if (auto op_tag = OpMatcher(sv)) {

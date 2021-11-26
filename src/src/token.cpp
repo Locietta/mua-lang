@@ -32,21 +32,10 @@ bool Token::isValue() const {
     return values.find(tag) != values.end();
 }
 
-string Token::getWordVal() const {
-    return val.get<TypeTag::WORD>().value;
-}
-
 bool Token::isNumber() const {
     // if (tag == TokenTag::WORD) { // FIXME: shouldn't have WORD to NUMBER convertion
     //     const auto &w = val.get<TypeTag::WORD>();
     //     // return w.isNumber(); 
     // }
     return tag == TokenTag::NUMBER;
-}
-
-double Token::getNumber() const {
-    if (tag == TokenTag::WORD) {
-        return stod(getWordVal());
-    }
-    return val.get<TypeTag::NUMBER>().value;
 }

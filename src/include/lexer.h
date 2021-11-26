@@ -16,12 +16,13 @@ class Lexer {
 private:
     // std::istringstream buf_;
     std::istream &in_;
-    List parseList_();
-    char peekInput_();
+    List parseList_() const;
+    char peekInput_() const;
 
 public:
     Lexer(std::istream &in = std::cin);
     Token lex();
+    bool eof() const { return peekInput_() == 0; }
 };
 
 #endif // _LEXER_H_

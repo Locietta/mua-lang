@@ -1,7 +1,6 @@
 #ifndef _LIST_H_
 #define _LIST_H_
 
-#include "word.h"
 #include <vector>
 
 /// Forward Declaration

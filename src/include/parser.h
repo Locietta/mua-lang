@@ -3,16 +3,18 @@
 
 #include <ostream>
 
-class Lexer;
 namespace std {
 extern std::ostream cout;
 } // namespace std
+
+class Lexer;
+class MagicType;
 
 class Parser {
 private:
     Lexer &lexer_;
     std::ostream &out_;
-    int list_level_ = 0;
+    MagicType parse_() const;
 
 public:
     Parser(class Lexer &lexer, std::ostream &out = std::cout) : lexer_(lexer), out_(out) {}
