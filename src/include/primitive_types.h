@@ -60,7 +60,7 @@ inline std::ostream &operator<<(std::ostream &out, const Word &val) {
 }
 
 inline std::ostream &operator<<(std::ostream &out, const Boolean &val) {
-    return out << (val.value ? "<True>" : "<False>");
+    return out << (val.value ? "true" : "false");
 }
 
 #endif // _PRIMITIVE_TYPES_H_
