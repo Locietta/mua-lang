@@ -36,6 +36,15 @@ MagicType Parser::readVar_(std::string const &str) const {
     return {}; // NOT FOUND
 }
 
+MagicType Parser::eraseVar_(std::string const &str) {
+    if (auto it = local_vars_.find(str); it != local_vars_.end()) {
+        auto ret = move(it->second);
+        local_vars_.erase(it);
+        return ret;
+    }
+    return {};
+}
+
 static ostream &operator<<(ostream &out, const MagicType &val) {
     switch (val.tag()) {
     case TypeTag::LIST: {
@@ -298,6 +307,13 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
             }
             return readVar_(name_tok.val.get<TypeTag::WORD>().value);
         } break;
+        case TokenTag::ERASE: {
+            auto name = parse_();
+            if (name.tag() != TypeTag::WORD || !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
+                throw "`erase` require a <name> as argument";
+            }
+            return eraseVar_(name.get<TypeTag::WORD>().value);
+        } break;
         case TokenTag::IS_NAME: {
             auto val = parse_();
             return Boolean(val.tag() == TypeTag::WORD &&
@@ -356,7 +372,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
             auto var_name = name.get<TypeTag::WORD>().value;
             auto var_val = readVar_(var_name);
             if (!var_val.valid()) return {};
-            p_global->local_vars_.emplace(move(var_name), var_val);
+            p_global->local_vars_.emplace(move(var_name), var_val); // FIXME: use [] to support overwrite
             return var_val;
         } break;
         case TokenTag::RUN: {

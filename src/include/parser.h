@@ -27,6 +27,7 @@ private:
     MagicType parse_() noexcept;
     MagicType runList_(List const &list);
     MagicType readVar_(std::string const &str) const;
+    MagicType eraseVar_(std::string const &str);
 
 public:
     Parser(TokenStream &tokStream, Parser *parent = nullptr,
