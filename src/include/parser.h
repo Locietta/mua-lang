@@ -30,8 +30,8 @@ private:
     MagicType eraseVar_(std::string const &str);
 
 public:
-    Parser(TokenStream &tokStream, Parser *parent = nullptr,
-           const VarTable &vars = global_init, std::ostream &out = std::cout)
+    Parser(TokenStream &tokStream, std::ostream &out = std::cout, Parser *parent = nullptr,
+           const VarTable &vars = global_init)
         : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
     [[maybe_unused]] MagicType run();
 };

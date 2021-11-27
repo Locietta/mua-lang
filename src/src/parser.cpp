@@ -222,7 +222,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         }
         /* prepare function call context */
         TokenStream func_body(func_body_list);
-        Parser func_exec_context(func_body, this, {}, out_);
+        Parser func_exec_context(func_body, out_, this, {});
         /* pass args into func context */
         for (const auto &arg : arg_list) {
             string_view arg_name = arg.get<TypeTag::WORD>();
