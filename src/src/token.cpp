@@ -8,7 +8,7 @@ const static unordered_set<TokenTag> funcs{
     TokenTag::MAKE,  TokenTag::THING, TokenTag::PRINT, TokenTag::READ,
     TokenTag::DEFER, TokenTag::ERASE, TokenTag::RUN, TokenTag::IS_NAME,
     TokenTag::IS_NUMBER,TokenTag::IS_WORD,TokenTag::IS_LIST,TokenTag::IS_BOOL,
-    TokenTag::IS_EMPTY, TokenTag::IF
+    TokenTag::IS_EMPTY, TokenTag::IF, TokenTag::EXPORT
 };
 
 const static unordered_set<TokenTag> operators{
