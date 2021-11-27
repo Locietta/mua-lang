@@ -309,7 +309,8 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         } break;
         case TokenTag::ERASE: {
             auto name = parse_();
-            if (name.tag() != TypeTag::WORD || !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
+            if (name.tag() != TypeTag::WORD ||
+                !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
                 throw "`erase` require a <name> as argument";
             }
             return eraseVar_(name.get<TypeTag::WORD>().value);
@@ -321,6 +322,10 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         } break;
         case TokenTag::IS_NUMBER: {
             auto val = parse_();
+            if (val.tag() == TypeTag::WORD &&
+                Lexer::numberMatcher(val.get<TypeTag::WORD>())) {
+                return Boolean(true);
+            }
             return Boolean(val.tag() == TypeTag::NUMBER);
         } break;
         case TokenTag::IS_WORD: {
