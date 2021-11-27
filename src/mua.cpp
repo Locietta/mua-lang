@@ -10,7 +10,10 @@ void mua(istream &in); // NOLINT
 int main(int argc, char *argv[]) {
     if (argc > 1) {
         ifstream fin(argv[1]);
-        if (!fin) cerr << "Couldn't open file " << argv[1] << " !\n";
+        if (!fin) {
+            cerr << "Couldn't open file " << argv[1] << "!\n";
+            exit(1);
+        }
         mua(fin);
     } else {
         mua(cin);

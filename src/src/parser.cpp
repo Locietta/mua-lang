@@ -274,7 +274,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
             MagicType name = parse_();
             MagicType value = parse_();
             if (name.tag() == TypeTag::WORD && value.valid()) {
-                local_vars_.emplace(name.get<TypeTag::WORD>().value, value);
+                local_vars_[name.get<TypeTag::WORD>().value] = value;
             }
         } break;
         case TokenTag::THING: {
@@ -369,10 +369,10 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
                 !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
                 throw "Invalid name to export!";
             }
-            auto var_name = name.get<TypeTag::WORD>().value;
+            const auto &var_name = name.get<TypeTag::WORD>().value;
             auto var_val = readVar_(var_name);
             if (!var_val.valid()) return {};
-            p_global->local_vars_.emplace(move(var_name), var_val); // FIXME: use [] to support overwrite
+            p_global->local_vars_[var_name] = var_val;
             return var_val;
         } break;
         case TokenTag::RUN: {
