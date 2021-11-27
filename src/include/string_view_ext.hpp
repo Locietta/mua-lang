@@ -63,7 +63,7 @@ inline string_view view(svmatch svm) {
 namespace std {
 
 /* Add conversions from string_view to int/float/double/... */
-#define GCC11
+// #define GCC11
 #ifdef GCC11
 template<typename T>
 inline T svto(string_view sv) { // NOLINT(readability-identifier-naming)
