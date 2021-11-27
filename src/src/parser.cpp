@@ -318,7 +318,8 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         case TokenTag::IS_NAME: {
             auto val = parse_();
             return Boolean(val.tag() == TypeTag::WORD &&
-                           Lexer::nameMatcher(val.get<TypeTag::WORD>()));
+                           readVar_(val.get<TypeTag::WORD>().value).tag() !=
+                               TypeTag::UNKNOWN);
         } break;
         case TokenTag::IS_NUMBER: {
             auto val = parse_();
