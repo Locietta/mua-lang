@@ -6,7 +6,7 @@ using namespace std;
 int main() {
     Lexer lexer;
     TokenStream toks(lexer);
-    Parser parser(toks, global_init);
+    Parser parser(toks);
     parser.run();
     return 0;
 }

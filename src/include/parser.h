@@ -29,8 +29,8 @@ private:
     MagicType readVar_(std::string_view sv) const;
 
 public:
-    Parser(TokenStream &tokStream, const VarTable &vars = {},
-           Parser *parent = nullptr, std::ostream &out = std::cout)
+    Parser(TokenStream &tokStream, Parser *parent = nullptr, const VarTable &vars = global_init,
+           std::ostream &out = std::cout)
         : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
     void run();
 };

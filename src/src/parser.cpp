@@ -196,29 +196,34 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
 
     if (tok.tag == TokenTag::NAME) {
         auto arg = readVar_(tok.val.get<TypeTag::WORD>());
-        // auto it = globals.find(tok.val.get<TypeTag::WORD>().value);
-        if (!arg.valid()) {
-            throw "Unknown function name...";
-        }
-        if (arg.tag() != TypeTag::LIST) {
-            throw "Invalid Function!";
-        }
+        /* Do some syntax checks */
+        if (!arg.valid()) throw "Unknown function name...";
+        if (arg.tag() != TypeTag::LIST) throw "Invalid Function!";
         const auto &func = arg.get<TypeTag::LIST>();
         if (func.size() != 2 || func[0].tag() != TypeTag::LIST ||
             func[1].tag() != TypeTag::LIST) {
             throw "Invalid Function!";
         }
         const auto &arg_list = func[0].get<TypeTag::LIST>();
-        const auto &func_body = func[1].get<TypeTag::LIST>();
+        const auto &func_body_list = func[1].get<TypeTag::LIST>();
         for (const auto &arg : arg_list) {
             if (arg.tag() != TypeTag::WORD ||
                 Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
                 throw "Invalid Function Parameter Name!";
             }
         }
+        /* prepare function call context */
+        TokenStream func_body(func_body_list);
+        Parser func_exec_context(func_body, this, {}, out_);
+        /* pass args into func context */
         for (const auto &arg : arg_list) {
             string_view arg_name = arg.get<TypeTag::WORD>();
+            auto real_arg = parse_();
+            if (!real_arg.valid()) throw "Not enough arguments for function call!";
+            func_exec_context.local_vars_.emplace(arg_name, move(real_arg));
         }
+        /* run function body */
+        
     }
 
     if (tok.isOperator()) {
