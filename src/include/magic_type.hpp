@@ -142,9 +142,8 @@ public:
     MagicType &operator=(MagicType const &rhs);
     MagicType &operator=(MagicType &&tmp) noexcept;
     /// generic assignment (Perfect Forwarding)
-    template <typename T>
+    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
     MagicType &operator=(T &&value) {
-        static_assert(meta::type_check<T>, "Unknown Type for MagicType");
         assign<tag_of<T>::tag>(std::forward<T>(value));
         return *this;
     }
