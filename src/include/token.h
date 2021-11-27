@@ -28,8 +28,6 @@ struct Token {
     [[nodiscard]] bool isNumber() const; 
     [[nodiscard]] bool isList() const { return tag == TokenTag::LIST; }
     [[nodiscard]] bool isName() const { return tag == TokenTag::NAME; }
-    [[nodiscard]] std::string getWordVal() const;
-    [[nodiscard]] double getNumber() const;
 };
 
 #endif // _TOKEN_H_

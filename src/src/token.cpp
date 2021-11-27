@@ -37,9 +37,5 @@ bool Token::isValue() const {
 }
 
 bool Token::isNumber() const {
-    // if (tag == TokenTag::WORD) { // FIXME: shouldn't have WORD to NUMBER convertion
-    //     const auto &w = val.get<TypeTag::WORD>();
-    //     // return w.isNumber(); 
-    // }
     return tag == TokenTag::NUMBER;
 }

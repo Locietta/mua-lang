@@ -3,6 +3,7 @@
 #include "list.h"
 #include "magic_type.hpp"
 #include "primitive_types.h"
+#include "ref_ptr.h"
 #include "string_view_ext.hpp"
 #include "token.h"
 #include "token_stream.h"
@@ -19,7 +20,21 @@
 
 using namespace std;
 
-static map<string, MagicType> variables{{"pi", Number("3.14159")}};
+const map<string, MagicType> global_init{{"pi", Number("3.14159")}};
+
+MagicType Parser::readVar_(std::string_view sv) const {
+    const Parser *scope = this;
+    while (scope != nullptr) {
+        const auto &curr_vars = scope->local_vars_;
+        // `curr_vars.find(sv)` is somehow invalid
+        auto it = std::find(curr_vars.begin(), curr_vars.end(), sv);
+        if (it != curr_vars.end()) {
+            return it->second;
+        }
+        scope = scope->parent_;
+    }
+    return {}; // NOT FOUND
+}
 
 static ostream &operator<<(ostream &out, const MagicType &val) {
     switch (val.tag()) {
@@ -48,7 +63,7 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
 }
 
 void Parser::run() {
-    while (!token_stream_.empty()) {
+    while (!token_stream_->empty()) {
         parse_();
     }
 }
@@ -157,18 +172,20 @@ static bool operator>(const MagicType &lhs, const MagicType &rhs) {
 
 MagicType Parser::runList_(List const &list) {
     if (list.empty()) return list;
-
+    RefPtr<TokenStream> buf_stream = token_stream_; // save input context
     TokenStream list_stream(list);
-    Parser local_parser(list_stream);
+
+    token_stream_ = RefPtr(list_stream);
     MagicType tmp;
-    while (!local_parser.token_stream_.empty()) {
-        tmp = local_parser.parse_();
+    while (!token_stream_->empty()) {
+        tmp = parse_();
     }
+    token_stream_ = buf_stream;
     return tmp;
 }
 
-MagicType Parser::parse_() const noexcept try { // catch all exceptions
-    auto tok = token_stream_.extract();
+MagicType Parser::parse_() noexcept try { // catch all exceptions
+    auto tok = token_stream_->extract();
     if (tok.tag == TokenTag::END_OF_INPUT) {
         return {};
     }
@@ -178,7 +195,30 @@ MagicType Parser::parse_() const noexcept try { // catch all exceptions
     }
 
     if (tok.tag == TokenTag::NAME) {
-        // TODO: function calls
+        auto arg = readVar_(tok.val.get<TypeTag::WORD>());
+        // auto it = globals.find(tok.val.get<TypeTag::WORD>().value);
+        if (!arg.valid()) {
+            throw "Unknown function name...";
+        }
+        if (arg.tag() != TypeTag::LIST) {
+            throw "Invalid Function!";
+        }
+        const auto &func = arg.get<TypeTag::LIST>();
+        if (func.size() != 2 || func[0].tag() != TypeTag::LIST ||
+            func[1].tag() != TypeTag::LIST) {
+            throw "Invalid Function!";
+        }
+        const auto &arg_list = func[0].get<TypeTag::LIST>();
+        const auto &func_body = func[1].get<TypeTag::LIST>();
+        for (const auto &arg : arg_list) {
+            if (arg.tag() != TypeTag::WORD ||
+                Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
+                throw "Invalid Function Parameter Name!";
+            }
+        }
+        for (const auto &arg : arg_list) {
+            string_view arg_name = arg.get<TypeTag::WORD>();
+        }
     }
 
     if (tok.isOperator()) {
@@ -221,7 +261,7 @@ MagicType Parser::parse_() const noexcept try { // catch all exceptions
             MagicType name = parse_();
             MagicType value = parse_();
             if (name.tag() == TypeTag::WORD && value.valid()) {
-                variables.emplace(name.get<TypeTag::WORD>().value, value);
+                local_vars_.emplace(name.get<TypeTag::WORD>().value, value);
             }
         } break;
         case TokenTag::THING: {
@@ -229,11 +269,7 @@ MagicType Parser::parse_() const noexcept try { // catch all exceptions
             if (word.tag() != TypeTag::WORD) {
                 throw "`thing` require a <word> as argument";
             }
-            auto it = variables.find(word.get<TypeTag::WORD>().value);
-            if (it != variables.end()) {
-                return it->second;
-            }
-            return {};
+            return readVar_(word.get<TypeTag::WORD>().value);
         } break;
         case TokenTag::PRINT: {
             auto val = parse_();
@@ -252,15 +288,11 @@ MagicType Parser::parse_() const noexcept try { // catch all exceptions
             return Word(read_buf);
         }
         case TokenTag::DEFER: {
-            auto name_tok = token_stream_.extract();
+            auto name_tok = token_stream_->extract();
             if (name_tok.tag != TokenTag::NAME) {
                 throw "`:` require a <name> as argument";
             }
-            auto it = variables.find(name_tok.val.get<TypeTag::WORD>().value);
-            if (it != variables.end()) {
-                return it->second;
-            }
-            return {};
+            return readVar_(name_tok.val.get<TypeTag::WORD>().value);
         } break;
         case TokenTag::IS_NAME: {
             auto val = parse_();
