@@ -21,13 +21,13 @@
 using namespace std;
 
 const map<string, MagicType> global_init{{"pi", Number("3.14159")}};
+static TokenStream empty_stream(List{});
 
-MagicType Parser::readVar_(std::string_view sv) const {
+MagicType Parser::readVar_(std::string const &str) const {
     const Parser *scope = this;
     while (scope != nullptr) {
         const auto &curr_vars = scope->local_vars_;
-        // `curr_vars.find(sv)` is somehow invalid
-        auto it = std::find(curr_vars.begin(), curr_vars.end(), sv);
+        auto it = curr_vars.find(str);
         if (it != curr_vars.end()) {
             return it->second;
         }
@@ -62,10 +62,12 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
     return out;
 }
 
-void Parser::run() {
+[[maybe_unused]] MagicType Parser::run() {
+    MagicType ret;
     while (!token_stream_->empty()) {
-        parse_();
+        ret = parse_();
     }
+    return ret;
 }
 
 const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
@@ -176,10 +178,7 @@ MagicType Parser::runList_(List const &list) {
     TokenStream list_stream(list);
 
     token_stream_ = RefPtr(list_stream);
-    MagicType tmp;
-    while (!token_stream_->empty()) {
-        tmp = parse_();
-    }
+    MagicType tmp = run();
     token_stream_ = buf_stream;
     return tmp;
 }
@@ -195,7 +194,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
     }
 
     if (tok.tag == TokenTag::NAME) {
-        auto arg = readVar_(tok.val.get<TypeTag::WORD>());
+        auto arg = readVar_(tok.val.get<TypeTag::WORD>().value);
         /* Do some syntax checks */
         if (!arg.valid()) throw "Unknown function name...";
         if (arg.tag() != TypeTag::LIST) throw "Invalid Function!";
@@ -208,7 +207,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         const auto &func_body_list = func[1].get<TypeTag::LIST>();
         for (const auto &arg : arg_list) {
             if (arg.tag() != TypeTag::WORD ||
-                Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
+                !Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
                 throw "Invalid Function Parameter Name!";
             }
         }
@@ -223,7 +222,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
             func_exec_context.local_vars_.emplace(arg_name, move(real_arg));
         }
         /* run function body */
-        
+        return func_exec_context.run();
     }
 
     if (tok.isOperator()) {
@@ -302,7 +301,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         case TokenTag::IS_NAME: {
             auto val = parse_();
             return Boolean(val.tag() == TypeTag::WORD &&
-                           regex_match(val.get<TypeTag::WORD>(), name_matcher));
+                           Lexer::nameMatcher(val.get<TypeTag::WORD>()));
         } break;
         case TokenTag::IS_NUMBER: {
             auto val = parse_();
@@ -340,6 +339,25 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
             } else { // NOLINT
                 return Parser::runList_(b2);
             }
+        } break;
+        case TokenTag::RETURN: {
+            auto ret = parse_();
+            token_stream_ = RefPtr(empty_stream);
+            return ret;
+        } break;
+        case TokenTag::EXPORT: {
+            auto *p_global = this;
+            while (p_global->parent_ != nullptr) p_global = p_global->parent_;
+            auto name = parse_();
+            if (name.tag() != TypeTag::WORD ||
+                !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
+                throw "Invalid name to export!";
+            }
+            auto var_name = name.get<TypeTag::WORD>().value;
+            auto var_val = readVar_(var_name);
+            if (!var_val.valid()) return {};
+            p_global->local_vars_.emplace(move(var_name), var_val);
+            return var_val;
         } break;
         case TokenTag::RUN: {
             auto list = parse_();

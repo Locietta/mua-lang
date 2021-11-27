@@ -26,13 +26,13 @@ private:
 
     MagicType parse_() noexcept;
     MagicType runList_(List const &list);
-    MagicType readVar_(std::string_view sv) const;
+    MagicType readVar_(std::string const &str) const;
 
 public:
-    Parser(TokenStream &tokStream, Parser *parent = nullptr, const VarTable &vars = global_init,
-           std::ostream &out = std::cout)
+    Parser(TokenStream &tokStream, Parser *parent = nullptr,
+           const VarTable &vars = global_init, std::ostream &out = std::cout)
         : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
-    void run();
+    [[maybe_unused]] MagicType run();
 };
 
 #endif // _PARSER_H_

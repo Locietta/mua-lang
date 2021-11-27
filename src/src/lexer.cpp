@@ -107,6 +107,8 @@ const static unordered_map<string_view, TokenTag> operations{
     {"isbool", TokenTag::IS_BOOL},
     {"isempty", TokenTag::IS_EMPTY},
     {"if", TokenTag::IF},
+    {"return", TokenTag::RETURN},
+    {"export", TokenTag::EXPORT},
     {"run", TokenTag::RUN},
     {"add", TokenTag::ADD},
     {"sub", TokenTag::SUB},

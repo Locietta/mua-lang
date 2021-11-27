@@ -11,7 +11,7 @@ enum class TokenTag {
     IS_NAME, IS_NUMBER, IS_WORD, IS_LIST, IS_BOOL, IS_EMPTY,
     ADD, SUB, MUL, DIV, MOD, EQ, GT, LT, AND, OR, NOT,
     WORD, BOOL, NUMBER, LIST, NAME,
-    IF,
+    IF, RETURN, EXPORT,
     END_OF_INPUT, UNKNOWN
 };
 // clang-format on
