@@ -37,20 +37,17 @@ inline bool regex_search(string_view sv, svmatch &m, const regex &r,
     return regex_search(sv.begin(), sv.end(), m, r, flags);
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-inline string_view prefix(svmatch svm) {
+inline string_view prefix(const svmatch &svm) {
     const auto &pre = svm.prefix();
     return {pre.first, static_cast<size_t>(pre.length())};
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-inline string_view suffix(svmatch svm) {
+inline string_view suffix(const svmatch &svm) {
     const auto &suf = svm.suffix();
     return {suf.first, static_cast<size_t>(suf.length())};
 }
 
-// NOLINTNEXTLINE(readability-identifier-naming)
-inline string_view view(svmatch svm) {
+inline string_view view(const svmatch &svm) {
     return {svm[0].first, static_cast<size_t>(svm[0].length())};
 }
 
@@ -65,10 +62,10 @@ namespace std {
 /* Add conversions from string_view to int/float/double/... */
 // #define GCC11
 #ifdef GCC11
-template<typename T>
-inline T svto(string_view sv) { // NOLINT(readability-identifier-naming)
+template <typename T>
+inline T svto(string_view sv) {
     T res;
-    auto [p, ec] = from_chars(sv.data(), sv.data()+sv.size(), res);
+    auto [p, ec] = from_chars(sv.data(), sv.data() + sv.size(), res);
     assert(ec == errc());
     return res;
 }
@@ -78,7 +75,7 @@ inline T svto(string_view sv) { // NOLINT(readability-identifier-naming)
 
 /* use if constexpr instead of SFINAE since C++17 */
 template <typename T>
-inline T svto(string_view sv) { // NOLINT(readability-identifier-naming)
+inline T svto(string_view sv) {
     if constexpr (is_integral<T>::value) {
         T res = 0;
         auto [p, ec] = from_chars(sv.data(), sv.data() + sv.size(), res);
@@ -99,6 +96,26 @@ inline T svto(string_view sv) { // NOLINT(readability-identifier-naming)
 }
 
 #endif // (defined GCC11)
+
+template <typename ContainerT>
+void split(std::string_view sv,
+           ContainerT &tokens, char delimiters = ' ', bool trimEmpty = false) {
+    std::string::size_type pos, last_pos = 0, length = sv.length();
+
+    using value_type = typename ContainerT::value_type;
+    using size_type = typename ContainerT::size_type;
+
+    while (last_pos < length + 1) {
+        pos = sv.find_first_of(delimiters, last_pos);
+        if (pos == std::string_view::npos) pos = length;
+
+        if (pos != last_pos || !trimEmpty) {
+            tokens.push_back(
+                value_type(sv.data() + last_pos, (size_type) pos - last_pos));
+        }
+        last_pos = pos + 1;
+    }
+}
 
 } // namespace std
 
