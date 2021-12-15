@@ -7,11 +7,20 @@
 
 // clang-format off
 enum class TokenTag {
-    MAKE, THING, PRINT, READ, DEFER, ERASE, RUN,
+    // basic operations
+    MAKE, THING, PRINT, READ, DEFER, ERASE, RUN, EXPORT, 
+    ERASE_ALL, PO_ALL_NAME,
+    // numeric operations
+    RANDOM, INT, SQRT,
+    // isXX
     IS_NAME, IS_NUMBER, IS_WORD, IS_LIST, IS_BOOL, IS_EMPTY,
+    // logic operatons
     ADD, SUB, MUL, DIV, MOD, EQ, GT, LT, AND, OR, NOT,
+    // type id
     WORD, BOOL, NUMBER, LIST, NAME,
-    IF, RETURN, EXPORT,
+    // control flow
+    IF, RETURN, 
+    // interal identifier
     END_OF_INPUT, UNKNOWN
 };
 // clang-format on
