@@ -82,14 +82,14 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
 const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
     name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
 
-static optional<Number> Str2Number(string_view sv) {
+static optional<Number> str2Number(string_view sv) {
     if (regex_match(sv, number_matcher)) {
         return svto<double>(sv);
     }
     return {};
 }
 
-static Number Magic2Number(const MagicType &arg) {
+static Number magic2Number(const MagicType &arg) {
     if (arg.tag() == TypeTag::NUMBER) {
         return arg.get<TypeTag::NUMBER>();
     }
@@ -97,7 +97,7 @@ static Number Magic2Number(const MagicType &arg) {
         return Number(arg.get<TypeTag::BOOLEAN>() ? 1 : 0);
     }
     if (arg.tag() == TypeTag::WORD) {
-        if (auto num_opt = Str2Number(arg.get<TypeTag::WORD>())) {
+        if (auto num_opt = str2Number(arg.get<TypeTag::WORD>())) {
             return num_opt.value();
         }
         throw "Bad Conversion from <Word> to <Number>";
@@ -105,7 +105,7 @@ static Number Magic2Number(const MagicType &arg) {
     throw "Bad Conversion to <Number>";
 }
 
-static Word Magic2Word(const MagicType &arg) {
+static Word magic2Word(const MagicType &arg) {
     if (arg.tag() == TypeTag::NUMBER) {
         return to_string(arg.get<TypeTag::NUMBER>().value);
     }
@@ -118,7 +118,7 @@ static Word Magic2Word(const MagicType &arg) {
     throw "Bad Conversion to <Word>";
 }
 
-static Boolean Magic2Boolean(const MagicType &arg) {
+static Boolean magic2Boolean(const MagicType &arg) {
     if (arg.tag() == TypeTag::NUMBER) {
         return arg.get<TypeTag::NUMBER>().value != 0;
     }
@@ -138,7 +138,7 @@ static Boolean Magic2Boolean(const MagicType &arg) {
     throw "Bad Conversion to <Boolean>";
 }
 
-static bool IsEmpty(const MagicType &arg) {
+static bool isEmpty(const MagicType &arg) {
     if (arg.tag() == TypeTag::WORD) {
         return arg.get<TypeTag::WORD>().value.empty();
     }
@@ -157,7 +157,7 @@ static bool operator==(const MagicType &lhs, const MagicType &rhs) {
         tag2 == TypeTag::UNKNOWN) {
         return false;
     }
-    const auto word1 = Magic2Word(lhs), word2 = Magic2Word(rhs);
+    const auto word1 = magic2Word(lhs), word2 = magic2Word(rhs);
     return word1.value == word2.value;
 }
 
@@ -241,7 +241,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
                 return arg1.get<TypeTag::BOOLEAN>().invert();
             }
             if (arg1.tag() == TypeTag::LIST || arg1.tag() == TypeTag::WORD) {
-                return Boolean(IsEmpty(arg1));
+                return Boolean(isEmpty(arg1));
             }
             if (arg1.tag() == TypeTag::NUMBER) {
                 return Boolean(arg1.get<TypeTag::NUMBER>().value == 0);
@@ -254,16 +254,16 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         }
 
         switch (tok.tag) {
-        case TokenTag::ADD: return Magic2Number(arg1) + Magic2Number(arg2);
-        case TokenTag::SUB: return Magic2Number(arg1) - Magic2Number(arg2);
-        case TokenTag::MUL: return Magic2Number(arg1) * Magic2Number(arg2);
-        case TokenTag::DIV: return Magic2Number(arg1) / Magic2Number(arg2);
-        case TokenTag::MOD: return Magic2Number(arg1) % Magic2Number(arg2);
+        case TokenTag::ADD: return magic2Number(arg1) + magic2Number(arg2);
+        case TokenTag::SUB: return magic2Number(arg1) - magic2Number(arg2);
+        case TokenTag::MUL: return magic2Number(arg1) * magic2Number(arg2);
+        case TokenTag::DIV: return magic2Number(arg1) / magic2Number(arg2);
+        case TokenTag::MOD: return magic2Number(arg1) % magic2Number(arg2);
         case TokenTag::EQ: return Boolean(arg1 == arg2);
         case TokenTag::GT: return Boolean(arg1 > arg2);
         case TokenTag::LT: return Boolean(arg1 < arg2);
-        case TokenTag::AND: return Boolean(Magic2Boolean(arg1) && Magic2Boolean(arg2));
-        case TokenTag::OR: return Boolean(Magic2Boolean(arg1) || Magic2Boolean(arg2));
+        case TokenTag::AND: return Boolean(magic2Boolean(arg1) && magic2Boolean(arg2));
+        case TokenTag::OR: return Boolean(magic2Boolean(arg1) || magic2Boolean(arg2));
         default: assert(false);
         }
     }
@@ -295,7 +295,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         case TokenTag::READ: {
             string read_buf;
             cin >> read_buf;
-            if (auto num_opt = Str2Number(read_buf)) {
+            if (auto num_opt = str2Number(read_buf)) {
                 return num_opt.value();
             }
             return Word(read_buf);
@@ -343,7 +343,7 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         } break;
         case TokenTag::IS_EMPTY: {
             auto val = parse_();
-            return Boolean(IsEmpty(val));
+            return Boolean(isEmpty(val));
         } break;
         case TokenTag::IF: {
             auto condition = parse_();

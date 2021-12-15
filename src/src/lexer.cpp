@@ -19,11 +19,11 @@ using namespace std;
 
 /* Static Function Declarations */
 
-static string ExtractListWord(istream &in);
+static string extractListWord(istream &in);
 
-static MagicType ListLiteralMatcher(string_view sv);
+static MagicType listLiteralMatcher(string_view sv);
 
-static Token GlobalMatcher(string_view sv);
+static Token globalMatcher(string_view sv);
 
 /* Methods Implementation */
 
@@ -50,7 +50,7 @@ Token Lexer::lex() {
 
     string tmp;
     in_ >> tmp;
-    return GlobalMatcher(tmp);
+    return globalMatcher(tmp);
 }
 
 List Lexer::parseList_() const {
@@ -67,8 +67,8 @@ List Lexer::parseList_() const {
             in_.get();
             return list;
         } else {
-            string tmp = ExtractListWord(in_);
-            list.emplace_back(ListLiteralMatcher(tmp));
+            string tmp = extractListWord(in_);
+            list.emplace_back(listLiteralMatcher(tmp));
         }
     }
 }
@@ -83,7 +83,7 @@ char Lexer::peekInput_() const {
 
 /* Static Function Implementation */
 
-static string ExtractListWord(istream &in) {
+static string extractListWord(istream &in) {
     string tmp;
     while (true) {
         const auto ch = in.peek();
@@ -140,7 +140,7 @@ bool Lexer::numberMatcher(std::string_view sv) {
     return regex_match(sv, number_matcher);
 }
 
-static MagicType ListLiteralMatcher(string_view sv) {
+static MagicType listLiteralMatcher(string_view sv) {
     if (Lexer::numberMatcher(sv)) {
         return Number(svto<double>(sv));
     }
@@ -151,7 +151,7 @@ static MagicType ListLiteralMatcher(string_view sv) {
 }
 
 /// Parse number, boolean and names(&ops) here
-static Token GlobalMatcher(string_view sv) {
+static Token globalMatcher(string_view sv) {
     if (sv == "true" || sv == "false") {
         return {TokenTag::BOOL, Boolean(sv == "true")};
     }
