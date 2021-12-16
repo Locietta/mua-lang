@@ -2,23 +2,15 @@
 #include "lexer.h"
 #include "list.h"
 #include "magic_type.hpp"
+#include "magic_type_ext.h"
 #include "primitive_types.h"
-#include "ref_ptr.h"
 #include "string_view_ext.hpp"
 #include "token.h"
 #include "token_stream.h"
 #include <cassert>
-#include <cmath>
-#include <cstdlib>
 #include <exception>
-#include <iostream>
-#include <map>
-#include <optional>
-#include <ostream>
-#include <regex>
 #include <string>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -72,8 +64,6 @@ MagicType Parser::eraseVar_(
     return {};
 }
 
-const static unordered_set<TokenTag> propagate_unknown_op;
-
 List Parser::readOprands_(TokenTag tag) {
     List ret;
     if (auto it = op_num_needed.find(tag); it != op_num_needed.end()) {
@@ -89,84 +79,12 @@ List Parser::readOprands_(TokenTag tag) {
     return {}; // unreachable
 }
 
-static ostream &operator<<(ostream &out, const MagicType &val) {
-    switch (val.tag()) {
-    case TypeTag::LIST: {
-        out << "[ ";
-        for (const auto &item : val.get<TypeTag::LIST>()) {
-            out << item << ' ';
-        }
-        return out << " ]";
-    }
-    case TypeTag::NUMBER: return out << val.get<TypeTag::NUMBER>();
-    case TypeTag::BOOLEAN: return out << val.get<TypeTag::BOOLEAN>();
-    case TypeTag::WORD: return out << val.get<TypeTag::WORD>();
-    case TypeTag::UNKNOWN: return out << "<NULL>";
-    default: assert(false);
-    }
-    return out;
-}
-
 [[maybe_unused]] MagicType Parser::run() {
     MagicType ret;
     while (!token_stream_->empty()) {
         ret = parse_();
     }
     return ret;
-}
-
-static optional<Number> str2Number(string_view sv) {
-    if (Lexer::numberMatcher(sv)) return svto<double>(sv);
-    return {};
-}
-
-static Number magic2Number(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return arg.get<TypeTag::NUMBER>();
-    }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return Number(arg.get<TypeTag::BOOLEAN>() ? 1 : 0);
-    }
-    if (arg.tag() == TypeTag::WORD) {
-        if (auto num_opt = str2Number(arg.get<TypeTag::WORD>())) {
-            return num_opt.value();
-        }
-        throw logic_error("Bad Conversion from <Word> to <Number>");
-    }
-    throw logic_error("Bad Conversion to <Number>");
-}
-
-static Word magic2Word(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return to_string(arg.get<TypeTag::NUMBER>().value);
-    }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return arg.get<TypeTag::BOOLEAN>() ? "true"sv : "false"sv;
-    }
-    if (arg.tag() == TypeTag::WORD) {
-        return arg.get<TypeTag::WORD>();
-    }
-    throw logic_error("Bad Conversion to <Word>");
-}
-
-static Boolean magic2Boolean(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return arg.get<TypeTag::NUMBER>().value != 0;
-    }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return arg.get<TypeTag::BOOLEAN>();
-    }
-    if (arg.tag() == TypeTag::WORD) {
-        string_view str = arg.get<TypeTag::WORD>();
-        if (str != "true" && str != "false") {
-            throw logic_error("Bad Conversion to <Boolean>");
-        }
-        return str == "true";
-    }
-    if (arg.tag() == TypeTag::LIST) {
-        return !arg.get<TypeTag::LIST>().empty();
-    }
-    throw logic_error("Bad Conversion to <Boolean>");
 }
 
 static bool isEmpty(const MagicType &arg) {
@@ -177,39 +95,6 @@ static bool isEmpty(const MagicType &arg) {
         return arg.get<TypeTag::LIST>().empty();
     }
     return arg.tag() == TypeTag::UNKNOWN;
-}
-
-static bool operator==(const MagicType &lhs, const MagicType &rhs) {
-    const auto tag1 = lhs.tag(), tag2 = rhs.tag();
-    if (tag1 == TypeTag::NUMBER && tag2 == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value == rhs.get<TypeTag::NUMBER>().value;
-    }
-    if (tag1 == TypeTag::LIST || tag2 == TypeTag::LIST || tag1 == TypeTag::UNKNOWN ||
-        tag2 == TypeTag::UNKNOWN) { // QUESTION: compare between lists
-        return false;
-    }
-    const auto word1 = magic2Word(lhs), word2 = magic2Word(rhs);
-    return word1.value == word2.value;
-}
-
-static bool operator<(const MagicType &lhs, const MagicType &rhs) {
-    if (lhs.tag() == TypeTag::NUMBER && rhs.tag() == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value < rhs.get<TypeTag::NUMBER>().value;
-    }
-    if (lhs.tag() == TypeTag::WORD && rhs.tag() == TypeTag::WORD) {
-        return lhs.get<TypeTag::WORD>().value < rhs.get<TypeTag::WORD>().value;
-    }
-    return false;
-}
-
-static bool operator>(const MagicType &lhs, const MagicType &rhs) {
-    if (lhs.tag() == TypeTag::NUMBER && rhs.tag() == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value > rhs.get<TypeTag::NUMBER>().value;
-    }
-    if (lhs.tag() == TypeTag::WORD && rhs.tag() == TypeTag::WORD) {
-        return lhs.get<TypeTag::WORD>().value > rhs.get<TypeTag::WORD>().value;
-    }
-    return false;
 }
 
 MagicType Parser::runList_(List const &list) {
@@ -258,7 +143,9 @@ MagicType Parser::parse_() { // catch all exceptions
         for (const auto &arg : arg_list) {
             string_view arg_name = arg.get<TypeTag::WORD>();
             auto real_arg = parse_();
-            if (!real_arg.valid()) throw logic_error("Not enough arguments for function call!");
+            if (!real_arg.valid()) {
+                throw logic_error("Not enough arguments for function call!");
+            }
             func_exec_context.local_vars_.emplace(arg_name, move(real_arg));
         }
         /* run function body */
@@ -287,8 +174,8 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::READ: { // read
         string read_buf;
         cin >> read_buf;
-        if (auto num_opt = str2Number(read_buf)) {
-            return num_opt.value();
+        if (Lexer::numberMatcher(read_buf)) {
+            return Number(svto<double>(read_buf));
         }
         return Word(move(read_buf));
     }
