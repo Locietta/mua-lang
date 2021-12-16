@@ -4,13 +4,15 @@
 #include "magic_type.hpp"
 #include "primitive_types.h"
 #include "token.h"
+#include <exception>
 #include <string>
 
 using std::string;
 
 TokenStream::TokenStream(Lexer &lexer) : mode_(Mode::LEXER), lexer_(lexer) {}
 
-TokenStream::TokenStream(const List &list) : mode_(Mode::LIST), list_(list), it_(list_.begin()) {}
+TokenStream::TokenStream(const List &list)
+    : mode_(Mode::LIST), list_(list), it_(list_.begin()) {}
 
 bool TokenStream::empty() const noexcept {
     if (mode_ == Mode::LEXER) {
@@ -57,7 +59,7 @@ Token TokenStream::extract() {
             }
             return {TokenTag::NAME, Word(move(str))};
         }
-        throw "Invalid name!";
+        throw std::logic_error("Invalid name!");
     }
     assert(false);
     return TokenTag::UNKNOWN;

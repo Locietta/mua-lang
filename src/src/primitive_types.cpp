@@ -2,23 +2,10 @@
 #include "string_view_ext.hpp"
 #include "token.h"
 #include <cassert>
-#include <regex>
 #include <string>
 #include <string_view>
 
 using namespace std;
-
-// bool Word::isBool() const {
-//     return content == "true" || content == "false";
-// }
-
-// bool Word::isName() const {
-//     return regex_match(content, name_matcher);
-// }
-
-// bool Word::isNumber() const {
-//     return regex_match(content, number_matcher);
-// }
 
 Word::Word(string_view sv) : value(sv) {}
 

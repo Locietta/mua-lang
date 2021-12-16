@@ -6,6 +6,7 @@
 #include "token.h"
 #include <cctype>
 #include <cstddef>
+#include <exception>
 #include <istream>
 #include <optional>
 #include <regex>
@@ -59,7 +60,7 @@ List Lexer::parseList_() const {
 
     while (true) {
         const char ch = peekInput_();
-        if (ch == 0) throw "Unmatched brackets";
+        if (ch == 0) throw logic_error("Unmatched brackets");
 
         if (ch == '[') {
             list.emplace_back(parseList_());
@@ -87,7 +88,7 @@ static string extractListWord(istream &in) {
     string tmp;
     while (true) {
         const auto ch = in.peek();
-        if (in.eof()) throw "Unmatched brackets";
+        if (in.eof()) throw logic_error("Unmatched brackets");
         if (isspace(ch) || ch == '[' || ch == ']') break;
         tmp.push_back(in.get());
     }
@@ -169,5 +170,5 @@ static Token globalMatcher(string_view sv) {
         }
         return {TokenTag::NAME, Word(sv)};
     }
-    throw "Invalid name!";
+    throw logic_error("Invalid name!");
 }

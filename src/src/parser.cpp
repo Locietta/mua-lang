@@ -97,19 +97,11 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
             out << item << ' ';
         }
         return out << " ]";
-    } break;
-    case TypeTag::NUMBER: {
-        return out << val.get<TypeTag::NUMBER>();
-    } break;
-    case TypeTag::BOOLEAN: {
-        return out << val.get<TypeTag::BOOLEAN>();
-    } break;
-    case TypeTag::WORD: {
-        return out << val.get<TypeTag::WORD>();
-    } break;
-    case TypeTag::UNKNOWN: {
-        return out << "<NULL>";
-    } break;
+    }
+    case TypeTag::NUMBER: return out << val.get<TypeTag::NUMBER>();
+    case TypeTag::BOOLEAN: return out << val.get<TypeTag::BOOLEAN>();
+    case TypeTag::WORD: return out << val.get<TypeTag::WORD>();
+    case TypeTag::UNKNOWN: return out << "<NULL>";
     default: assert(false);
     }
     return out;
@@ -123,13 +115,8 @@ static ostream &operator<<(ostream &out, const MagicType &val) {
     return ret;
 }
 
-const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"},
-    name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
-
 static optional<Number> str2Number(string_view sv) {
-    if (regex_match(sv, number_matcher)) {
-        return svto<double>(sv);
-    }
+    if (Lexer::numberMatcher(sv)) return svto<double>(sv);
     return {};
 }
 
@@ -144,9 +131,9 @@ static Number magic2Number(const MagicType &arg) {
         if (auto num_opt = str2Number(arg.get<TypeTag::WORD>())) {
             return num_opt.value();
         }
-        throw "Bad Conversion from <Word> to <Number>";
+        throw logic_error("Bad Conversion from <Word> to <Number>");
     }
-    throw "Bad Conversion to <Number>";
+    throw logic_error("Bad Conversion to <Number>");
 }
 
 static Word magic2Word(const MagicType &arg) {
@@ -159,7 +146,7 @@ static Word magic2Word(const MagicType &arg) {
     if (arg.tag() == TypeTag::WORD) {
         return arg.get<TypeTag::WORD>();
     }
-    throw "Bad Conversion to <Word>";
+    throw logic_error("Bad Conversion to <Word>");
 }
 
 static Boolean magic2Boolean(const MagicType &arg) {
@@ -172,14 +159,14 @@ static Boolean magic2Boolean(const MagicType &arg) {
     if (arg.tag() == TypeTag::WORD) {
         string_view str = arg.get<TypeTag::WORD>();
         if (str != "true" && str != "false") {
-            throw "Bad Conversion to <Boolean>";
+            throw logic_error("Bad Conversion to <Boolean>");
         }
         return str == "true";
     }
     if (arg.tag() == TypeTag::LIST) {
         return !arg.get<TypeTag::LIST>().empty();
     }
-    throw "Bad Conversion to <Boolean>";
+    throw logic_error("Bad Conversion to <Boolean>");
 }
 
 static bool isEmpty(const MagicType &arg) {
@@ -249,19 +236,19 @@ MagicType Parser::parse_() { // catch all exceptions
     if (tok.tag == TokenTag::NAME) {
         auto arg = readVar_(tok.val.get<TypeTag::WORD>().value);
         /* Do some syntax checks */
-        if (!arg.valid()) throw "Unknown function name...";
-        if (arg.tag() != TypeTag::LIST) throw "Invalid Function!";
+        if (!arg.valid()) throw logic_error("Unknown function name...");
+        if (arg.tag() != TypeTag::LIST) throw logic_error("Invalid Function!");
         const auto &func = arg.get<TypeTag::LIST>();
         if (func.size() != 2 || func[0].tag() != TypeTag::LIST ||
             func[1].tag() != TypeTag::LIST) {
-            throw "Invalid Function!";
+            throw logic_error("Invalid Function!");
         }
         const auto &arg_list = func[0].get<TypeTag::LIST>();
         const auto &func_body_list = func[1].get<TypeTag::LIST>();
         for (const auto &arg : arg_list) {
             if (arg.tag() != TypeTag::WORD ||
                 !Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
-                throw "Invalid Function Parameter Name!";
+                throw logic_error("Invalid Function Parameter Name!");
             }
         }
         /* prepare function call context */
@@ -271,7 +258,7 @@ MagicType Parser::parse_() { // catch all exceptions
         for (const auto &arg : arg_list) {
             string_view arg_name = arg.get<TypeTag::WORD>();
             auto real_arg = parse_();
-            if (!real_arg.valid()) throw "Not enough arguments for function call!";
+            if (!real_arg.valid()) throw logic_error("Not enough arguments for function call!");
             func_exec_context.local_vars_.emplace(arg_name, move(real_arg));
         }
         /* run function body */
@@ -338,7 +325,7 @@ MagicType Parser::parse_() { // catch all exceptions
         const auto &branch2 = args[2];
         if (condition.tag() != TypeTag::BOOLEAN || branch1.tag() != TypeTag::LIST ||
             branch2.tag() != TypeTag::LIST) {
-            throw "Syntax Error: if <Bool> <List> <List>";
+            throw logic_error("Syntax Error: if <Bool> <List> <List>");
         }
         const auto &cond = condition.get<TypeTag::BOOLEAN>();
         const auto &b1 = branch1.get<TypeTag::LIST>();
@@ -366,7 +353,7 @@ MagicType Parser::parse_() { // catch all exceptions
         return var_val;
     }
     case TokenTag::RUN: {
-        if (args[0].tag() != TypeTag::LIST) throw "`run` expects a <List>";
+        if (args[0].tag() != TypeTag::LIST) throw logic_error("`run` expects a <List>");
         return Parser::runList_(args[0].get<TypeTag::LIST>());
     }
     case TokenTag::ADD: return magic2Number(args[0]) + magic2Number(args[1]);
