@@ -10,12 +10,15 @@
 #include <cassert>
 #include <cmath>
 #include <cstdlib>
+#include <exception>
 #include <iostream>
 #include <map>
 #include <optional>
 #include <ostream>
 #include <regex>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -23,26 +26,67 @@ using namespace std;
 const map<string, MagicType> global_init{{"pi", Number("3.14159")}};
 static TokenStream empty_stream(List{});
 
+const static unordered_map<TokenTag, int> op_num_needed{
+    {TokenTag::MAKE, 2},        {TokenTag::THING, 1},     {TokenTag::PRINT, 1},
+    {TokenTag::READ, 0},        {TokenTag::DEFER, 0},     {TokenTag::ERASE, 1},
+    {TokenTag::RUN, 1},         {TokenTag::EXPORT, 1},    {TokenTag::ERASE_ALL, 0},
+    {TokenTag::PO_ALL_NAME, 0}, {TokenTag::RANDOM, 1},    {TokenTag::INT, 1},
+    {TokenTag::SQRT, 1},        {TokenTag::ADD, 2},       {TokenTag::SUB, 2},
+    {TokenTag::MUL, 2},         {TokenTag::DIV, 2},       {TokenTag::MOD, 2},
+    {TokenTag::IS_NAME, 1},     {TokenTag::IS_NUMBER, 1}, {TokenTag::IS_WORD, 1},
+    {TokenTag::IS_LIST, 1},     {TokenTag::IS_BOOL, 1},   {TokenTag::IS_EMPTY, 1},
+    {TokenTag::EQ, 2},          {TokenTag::GT, 2},        {TokenTag::LT, 2},
+    {TokenTag::AND, 2},         {TokenTag::OR, 2},        {TokenTag::NOT, 2},
+    {TokenTag::WORD, 0},        {TokenTag::BOOL, 0},      {TokenTag::NUMBER, 0},
+    {TokenTag::LIST, 0},        {TokenTag::IF, 3},        {TokenTag::RETURN, 1},
+};
+
 MagicType Parser::readVar_(std::string const &str) const {
-    const Parser *scope = this;
-    while (scope != nullptr) {
+    for (const Parser *scope = this; scope != nullptr; scope = scope->parent_) {
         const auto &curr_vars = scope->local_vars_;
         auto it = curr_vars.find(str);
-        if (it != curr_vars.end()) {
-            return it->second;
-        }
-        scope = scope->parent_;
+        if (it != curr_vars.end()) return it->second;
     }
-    return {}; // NOT FOUND
+    // NOT FOUND
+    throw logic_error("No variable named `" + str + "` in current scope!");
 }
 
-MagicType Parser::eraseVar_(std::string const &str) {
+bool Parser::isName_(MagicType const &val) noexcept {
+    if (val.tag() != TypeTag::WORD) return false;
+    const auto &str = val.get<TypeTag::WORD>().value;
+    for (const Parser *scope = this; scope != nullptr; scope = scope->parent_) {
+        const auto &curr_vars = scope->local_vars_;
+        auto it = curr_vars.find(str);
+        if (it != curr_vars.end()) return true;
+    }
+    return false;
+}
+
+MagicType Parser::eraseVar_(
+    std::string const &str) { // FIXME: should recursively search parent scope
     if (auto it = local_vars_.find(str); it != local_vars_.end()) {
         auto ret = move(it->second);
         local_vars_.erase(it);
         return ret;
     }
     return {};
+}
+
+const static unordered_set<TokenTag> propagate_unknown_op;
+
+List Parser::readOprands_(TokenTag tag) {
+    List ret;
+    if (auto it = op_num_needed.find(tag); it != op_num_needed.end()) {
+        int num_arg = it->second;
+        for (int i = 0; i < num_arg; ++i) {
+            auto &&arg = parse_();
+            if (!arg.valid()) throw logic_error("expect a oprand but get `<NULL>`...");
+            ret.emplace_back(move(arg));
+        }
+        return ret;
+    }
+    assert(false && "invalid tag!");
+    return {}; // unreachable
 }
 
 static ostream &operator<<(ostream &out, const MagicType &val) {
@@ -154,7 +198,7 @@ static bool operator==(const MagicType &lhs, const MagicType &rhs) {
         return lhs.get<TypeTag::NUMBER>().value == rhs.get<TypeTag::NUMBER>().value;
     }
     if (tag1 == TypeTag::LIST || tag2 == TypeTag::LIST || tag1 == TypeTag::UNKNOWN ||
-        tag2 == TypeTag::UNKNOWN) {
+        tag2 == TypeTag::UNKNOWN) { // QUESTION: compare between lists
         return false;
     }
     const auto word1 = magic2Word(lhs), word2 = magic2Word(rhs);
@@ -192,14 +236,14 @@ MagicType Parser::runList_(List const &list) {
     return tmp;
 }
 
-MagicType Parser::parse_() noexcept try { // catch all exceptions
+static bool isValidName(const MagicType &val) {
+    return val.tag() == TypeTag::WORD && Lexer::nameMatcher(val.get<TypeTag::WORD>());
+}
+
+MagicType Parser::parse_() { // catch all exceptions
     auto tok = token_stream_->extract();
     if (tok.tag == TokenTag::END_OF_INPUT) {
-        return {};
-    }
-
-    if (tok.isValue()) {
-        return tok.val;
+        throw logic_error("Unexpected EOF!");
     }
 
     if (tok.tag == TokenTag::NAME) {
@@ -234,166 +278,127 @@ MagicType Parser::parse_() noexcept try { // catch all exceptions
         return func_exec_context.run();
     }
 
-    if (tok.isOperator()) {
-        MagicType arg1 = parse_();
-        if (tok.tag == TokenTag::NOT) {
-            if (arg1.tag() == TypeTag::BOOLEAN) {
-                return arg1.get<TypeTag::BOOLEAN>().invert();
-            }
-            if (arg1.tag() == TypeTag::LIST || arg1.tag() == TypeTag::WORD) {
-                return Boolean(isEmpty(arg1));
-            }
-            if (arg1.tag() == TypeTag::NUMBER) {
-                return Boolean(arg1.get<TypeTag::NUMBER>().value == 0);
-            }
-            return {}; // NOT <UNKNOWN> ==> <UNKNOWN>
-        }
-        MagicType arg2 = parse_();
-        if (!arg1.valid() || !arg2.valid()) {
-            throw "Unmatched oprand number";
-        }
+    auto args = readOprands_(tok.tag);
 
-        switch (tok.tag) {
-        case TokenTag::ADD: return magic2Number(arg1) + magic2Number(arg2);
-        case TokenTag::SUB: return magic2Number(arg1) - magic2Number(arg2);
-        case TokenTag::MUL: return magic2Number(arg1) * magic2Number(arg2);
-        case TokenTag::DIV: return magic2Number(arg1) / magic2Number(arg2);
-        case TokenTag::MOD: return magic2Number(arg1) % magic2Number(arg2);
-        case TokenTag::EQ: return Boolean(arg1 == arg2);
-        case TokenTag::GT: return Boolean(arg1 > arg2);
-        case TokenTag::LT: return Boolean(arg1 < arg2);
-        case TokenTag::AND: return Boolean(magic2Boolean(arg1) && magic2Boolean(arg2));
-        case TokenTag::OR: return Boolean(magic2Boolean(arg1) || magic2Boolean(arg2));
-        default: assert(false);
+    switch (tok.tag) {
+    case TokenTag::MAKE: { // make <Name> <Val>
+        if (!isValidName(args[0])) {
+            throw logic_error("`make` requires a <Name> as variable name");
+        }
+        return (local_vars_[args[0].get<TypeTag::WORD>().value] = args[1]);
+    }
+    case TokenTag::THING: { // thing <Word>
+        if (args[0].tag() != TypeTag::WORD) {
+            throw logic_error("`thing` require a <Word> as argument");
+        }
+        return readVar_(args[0].get<TypeTag::WORD>().value);
+    }
+    case TokenTag::PRINT: { // print <Word>
+        out_ << args[0] << endl;
+        return args[0];
+    }
+    case TokenTag::READ: { // read
+        string read_buf;
+        cin >> read_buf;
+        if (auto num_opt = str2Number(read_buf)) {
+            return num_opt.value();
+        }
+        return Word(move(read_buf));
+    }
+    case TokenTag::DEFER: { // : <Name>
+        auto name_tok = token_stream_->extract();
+        if (name_tok.tag != TokenTag::NAME) {
+            throw logic_error("`:` expects a <Name> as argument");
+        }
+        return readVar_(name_tok.val.get<TypeTag::WORD>().value);
+    }
+    case TokenTag::ERASE: { // erase <Name>
+        if (!isValidName(args[0])) {
+            throw logic_error("`erase` expects a <Name> as argument");
+        }
+        return eraseVar_(args[0].get<TypeTag::WORD>().value);
+    }
+    case TokenTag::IS_NAME: { // isname <Word>
+        return Boolean(isName_(args[0]));
+    }
+    case TokenTag::IS_NUMBER: { // isnumber <Word|Number>
+        if (args[0].tag() == TypeTag::WORD &&
+            Lexer::numberMatcher(args[0].get<TypeTag::WORD>())) {
+            return Boolean(true);
+        }
+        return Boolean(args[0].tag() == TypeTag::NUMBER);
+    }
+    case TokenTag::IS_WORD: return Boolean(args[0].tag() == TypeTag::WORD);
+    case TokenTag::IS_LIST: return Boolean(args[0].tag() == TypeTag::LIST);
+    case TokenTag::IS_BOOL: return Boolean(args[0].tag() == TypeTag::BOOLEAN);
+    case TokenTag::IS_EMPTY: return Boolean(isEmpty(args[0]));
+    case TokenTag::IF: {
+        const auto &condition = args[0];
+        const auto &branch1 = args[1];
+        const auto &branch2 = args[2];
+        if (condition.tag() != TypeTag::BOOLEAN || branch1.tag() != TypeTag::LIST ||
+            branch2.tag() != TypeTag::LIST) {
+            throw "Syntax Error: if <Bool> <List> <List>";
+        }
+        const auto &cond = condition.get<TypeTag::BOOLEAN>();
+        const auto &b1 = branch1.get<TypeTag::LIST>();
+        const auto &b2 = branch2.get<TypeTag::LIST>();
+        if (cond) {
+            return Parser::runList_(b1);
+        } else { // NOLINT
+            return Parser::runList_(b2);
         }
     }
-
-    if (tok.isFunc()) {
-        switch (tok.tag) {
-        case TokenTag::MAKE: {
-            MagicType name = parse_();
-            MagicType value = parse_();
-            if (name.tag() == TypeTag::WORD && value.valid()) {
-                local_vars_[name.get<TypeTag::WORD>().value] = value;
-            }
-        } break;
-        case TokenTag::THING: {
-            auto word = parse_();
-            if (word.tag() != TypeTag::WORD) {
-                throw "`thing` require a <word> as argument";
-            }
-            return readVar_(word.get<TypeTag::WORD>().value);
-        } break;
-        case TokenTag::PRINT: {
-            auto val = parse_();
-            if (val.valid()) {
-                out_ << val << endl;
-                return val;
-            }
-            return {};
-        } break;
-        case TokenTag::READ: {
-            string read_buf;
-            cin >> read_buf;
-            if (auto num_opt = str2Number(read_buf)) {
-                return num_opt.value();
-            }
-            return Word(read_buf);
-        }
-        case TokenTag::DEFER: {
-            auto name_tok = token_stream_->extract();
-            if (name_tok.tag != TokenTag::NAME) {
-                throw "`:` require a <name> as argument";
-            }
-            return readVar_(name_tok.val.get<TypeTag::WORD>().value);
-        } break;
-        case TokenTag::ERASE: {
-            auto name = parse_();
-            if (name.tag() != TypeTag::WORD ||
-                !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
-                throw "`erase` require a <name> as argument";
-            }
-            return eraseVar_(name.get<TypeTag::WORD>().value);
-        } break;
-        case TokenTag::IS_NAME: {
-            auto val = parse_();
-            return Boolean(val.tag() == TypeTag::WORD &&
-                           readVar_(val.get<TypeTag::WORD>().value).tag() !=
-                               TypeTag::UNKNOWN);
-        } break;
-        case TokenTag::IS_NUMBER: {
-            auto val = parse_();
-            if (val.tag() == TypeTag::WORD &&
-                Lexer::numberMatcher(val.get<TypeTag::WORD>())) {
-                return Boolean(true);
-            }
-            return Boolean(val.tag() == TypeTag::NUMBER);
-        } break;
-        case TokenTag::IS_WORD: {
-            auto val = parse_();
-            return Boolean(val.tag() == TypeTag::WORD);
-        } break;
-        case TokenTag::IS_LIST: {
-            auto val = parse_();
-            return Boolean(val.tag() == TypeTag::LIST);
-        } break;
-        case TokenTag::IS_BOOL: {
-            auto val = parse_();
-            return Boolean(val.tag() == TypeTag::BOOLEAN);
-        } break;
-        case TokenTag::IS_EMPTY: {
-            auto val = parse_();
-            return Boolean(isEmpty(val));
-        } break;
-        case TokenTag::IF: {
-            auto condition = parse_();
-            auto branch1 = parse_();
-            auto branch2 = parse_();
-            if (condition.tag() != TypeTag::BOOLEAN || branch1.tag() != TypeTag::LIST ||
-                branch2.tag() != TypeTag::LIST) {
-                throw "Syntax Error: if <Bool> <List> <List>";
-            }
-            const auto &cond = condition.get<TypeTag::BOOLEAN>();
-            const auto &b1 = branch1.get<TypeTag::LIST>();
-            const auto &b2 = branch2.get<TypeTag::LIST>();
-            if (cond) {
-                return Parser::runList_(b1);
-            } else { // NOLINT
-                return Parser::runList_(b2);
-            }
-        } break;
-        case TokenTag::RETURN: {
-            auto ret = parse_();
-            token_stream_ = RefPtr(empty_stream);
-            return ret;
-        } break;
-        case TokenTag::EXPORT: {
-            auto *p_global = this;
-            while (p_global->parent_ != nullptr) p_global = p_global->parent_;
-            auto name = parse_();
-            if (name.tag() != TypeTag::WORD ||
-                !Lexer::nameMatcher(name.get<TypeTag::WORD>())) {
-                throw "Invalid name to export!";
-            }
-            const auto &var_name = name.get<TypeTag::WORD>().value;
-            auto var_val = readVar_(var_name);
-            if (!var_val.valid()) return {};
-            p_global->local_vars_[var_name] = var_val;
-            return var_val;
-        } break;
-        case TokenTag::RUN: {
-            auto list = parse_();
-            if (list.tag() != TypeTag::LIST) throw "`run` requires a <List>";
-            return Parser::runList_(list.get<TypeTag::LIST>());
-        } break;
-        default: assert(false);
-        }
+    case TokenTag::RETURN: {
+        token_stream_ = RefPtr(empty_stream); // close input stream
+        return args[0];
     }
-    return {};
-} catch (const char *e) {
-    cerr << e << endl;
-    exit(1);
-} catch (...) {
-    cerr << "Internal Exception...\n";
-    exit(2);
+    case TokenTag::EXPORT: {
+        auto *p_global = this;
+        while (p_global->parent_ != nullptr) p_global = p_global->parent_;
+        if (!isValidName(args[0])) {
+            throw logic_error("`export` expects a <Name> to be exported to global.");
+        }
+        const auto &var_name = args[0].get<TypeTag::WORD>().value;
+        auto var_val = readVar_(var_name);
+        if (!var_val.valid()) return {};
+        p_global->local_vars_[var_name] = var_val;
+        return var_val;
+    }
+    case TokenTag::RUN: {
+        if (args[0].tag() != TypeTag::LIST) throw "`run` expects a <List>";
+        return Parser::runList_(args[0].get<TypeTag::LIST>());
+    }
+    case TokenTag::ADD: return magic2Number(args[0]) + magic2Number(args[1]);
+    case TokenTag::SUB: return magic2Number(args[0]) - magic2Number(args[1]);
+    case TokenTag::MUL: return magic2Number(args[0]) * magic2Number(args[1]);
+    case TokenTag::DIV: return magic2Number(args[0]) / magic2Number(args[1]);
+    case TokenTag::MOD: return magic2Number(args[0]) % magic2Number(args[1]);
+    case TokenTag::EQ: return Boolean(args[0] == args[1]);
+    case TokenTag::GT: return Boolean(args[0] > args[1]);
+    case TokenTag::LT: return Boolean(args[0] < args[1]);
+    case TokenTag::AND: return Boolean(magic2Boolean(args[0]) && magic2Boolean(args[1]));
+    case TokenTag::OR: return Boolean(magic2Boolean(args[0]) || magic2Boolean(args[1]));
+    case TokenTag::NOT: {
+        if (args[0].tag() == TypeTag::BOOLEAN) {
+            return args[0].get<TypeTag::BOOLEAN>().invert();
+        }
+        if (args[0].tag() == TypeTag::LIST || args[0].tag() == TypeTag::WORD) {
+            return Boolean(isEmpty(args[0]));
+        }
+        if (args[0].tag() == TypeTag::NUMBER) {
+            return Boolean(args[0].get<TypeTag::NUMBER>().value == 0);
+        }
+        assert(false);
+        return {}; // unreachable
+    }
+    case TokenTag::NUMBER:
+    case TokenTag::BOOL:
+    case TokenTag::WORD:
+    case TokenTag::LIST: return tok.val;
+    default: {
+        assert(false);
+        return {}; // unreachable
+    }
+    }
 }

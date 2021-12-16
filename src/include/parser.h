@@ -12,6 +12,7 @@ extern std::ostream cout;
 class MagicType;
 class TokenStream;
 class List;
+enum class TokenTag;
 
 extern const std::map<std::string, MagicType> global_init; // some pre-defined globals
 
@@ -24,14 +25,16 @@ private:
     Parser *parent_;
     VarTable local_vars_;
 
-    MagicType parse_() noexcept;
+    MagicType parse_();
     MagicType runList_(List const &list);
     MagicType readVar_(std::string const &str) const;
     MagicType eraseVar_(std::string const &str);
+    bool isName_(MagicType const &val) noexcept;
+    List readOprands_(TokenTag tag);
 
 public:
-    Parser(TokenStream &tokStream, std::ostream &out = std::cout, Parser *parent = nullptr,
-           const VarTable &vars = global_init)
+    Parser(TokenStream &tokStream, std::ostream &out = std::cout,
+           Parser *parent = nullptr, const VarTable &vars = global_init)
         : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
     [[maybe_unused]] MagicType run();
 };

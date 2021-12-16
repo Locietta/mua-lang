@@ -10,9 +10,6 @@ enum class TokenTag;
 
 struct Word {
     std::string value;
-    // [[nodiscard]] bool isNumber() const;
-    // [[nodiscard]] bool isBool() const;
-    // [[nodiscard]] bool isName() const;
     operator std::string_view() const { return value; }
     Word(std::string_view sv);
     Word(std::string &&str) : value(move(str)) {}
