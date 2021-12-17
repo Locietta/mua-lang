@@ -19,18 +19,18 @@ const map<string, MagicType> global_init{{"pi", Number("3.14159")}};
 static TokenStream empty_stream(List{});
 
 const static unordered_map<TokenTag, int> op_num_needed{
-    {TokenTag::MAKE, 2},        {TokenTag::THING, 1},     {TokenTag::PRINT, 1},
-    {TokenTag::READ, 0},        {TokenTag::DEFER, 0},     {TokenTag::ERASE, 1},
-    {TokenTag::RUN, 1},         {TokenTag::EXPORT, 1},    {TokenTag::ERASE_ALL, 0},
-    {TokenTag::PO_ALL_NAME, 0}, {TokenTag::RANDOM, 1},    {TokenTag::INT, 1},
-    {TokenTag::SQRT, 1},        {TokenTag::ADD, 2},       {TokenTag::SUB, 2},
-    {TokenTag::MUL, 2},         {TokenTag::DIV, 2},       {TokenTag::MOD, 2},
-    {TokenTag::IS_NAME, 1},     {TokenTag::IS_NUMBER, 1}, {TokenTag::IS_WORD, 1},
-    {TokenTag::IS_LIST, 1},     {TokenTag::IS_BOOL, 1},   {TokenTag::IS_EMPTY, 1},
-    {TokenTag::EQ, 2},          {TokenTag::GT, 2},        {TokenTag::LT, 2},
-    {TokenTag::AND, 2},         {TokenTag::OR, 2},        {TokenTag::NOT, 2},
-    {TokenTag::WORD, 0},        {TokenTag::BOOL, 0},      {TokenTag::NUMBER, 0},
-    {TokenTag::LIST, 0},        {TokenTag::IF, 3},        {TokenTag::RETURN, 1},
+    {TokenTag::MAKE, 2},      {TokenTag::THING, 1},    {TokenTag::PRINT, 1},
+    {TokenTag::READ, 0},      {TokenTag::DEFER, 0},    {TokenTag::ERASE, 1},
+    {TokenTag::RUN, 1},       {TokenTag::EXPORT, 1},   {TokenTag::ERASE_ALL, 0},
+    {TokenTag::RANDOM, 1},    {TokenTag::INT, 1},      {TokenTag::SQRT, 1},
+    {TokenTag::ADD, 2},       {TokenTag::SUB, 2},      {TokenTag::MUL, 2},
+    {TokenTag::DIV, 2},       {TokenTag::MOD, 2},      {TokenTag::IS_NAME, 1},
+    {TokenTag::IS_NUMBER, 1}, {TokenTag::IS_WORD, 1},  {TokenTag::IS_LIST, 1},
+    {TokenTag::IS_BOOL, 1},   {TokenTag::IS_EMPTY, 1}, {TokenTag::EQ, 2},
+    {TokenTag::GT, 2},        {TokenTag::LT, 2},       {TokenTag::AND, 2},
+    {TokenTag::OR, 2},        {TokenTag::NOT, 2},      {TokenTag::WORD, 0},
+    {TokenTag::BOOL, 0},      {TokenTag::NUMBER, 0},   {TokenTag::LIST, 0},
+    {TokenTag::IF, 3},        {TokenTag::RETURN, 1},
 };
 
 MagicType Parser::readVar_(std::string const &str) const {

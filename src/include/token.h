@@ -9,7 +9,7 @@
 enum class TokenTag {
     // basic operations
     MAKE, THING, PRINT, READ, DEFER, ERASE, RUN, EXPORT, 
-    ERASE_ALL, PO_ALL_NAME,
+    ERASE_ALL,
     // numeric operations
     RANDOM, INT, SQRT, ADD, SUB, MUL, DIV, MOD,
     // isXX

@@ -126,7 +126,6 @@ const static unordered_map<string_view, TokenTag> operations{
     {"int", TokenTag::INT},
     {"sqrt", TokenTag::SQRT},
     {"erall", TokenTag::ERASE_ALL},
-    {"poall", TokenTag::PO_ALL_NAME},
 };
 
 TokenTag Lexer::opMatcher(string_view sv) {
