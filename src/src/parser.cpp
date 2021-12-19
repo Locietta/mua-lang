@@ -9,14 +9,17 @@
 #include "token_stream.h"
 #include <cassert>
 #include <exception>
+#include <random>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 using namespace std;
+using uni_real_dist = uniform_real_distribution<double>;
 
 const map<string, MagicType> global_init{{"pi", Number("3.14159")}};
 static TokenStream empty_stream(List{});
+static mt19937_64 gen{random_device{}()};
 
 const static unordered_map<TokenTag, int> op_num_needed{
     {TokenTag::MAKE, 2},      {TokenTag::THING, 1},    {TokenTag::PRINT, 1},
@@ -54,8 +57,8 @@ bool Parser::isName_(MagicType const &val) noexcept {
     return false;
 }
 
-MagicType Parser::eraseVar_(
-    std::string const &str) { // FIXME: should recursively search parent scope
+MagicType Parser::eraseVar_(std::string const &str) {
+    // FIXME: should recursively search parent scope
     if (auto it = local_vars_.find(str); it != local_vars_.end()) {
         auto ret = move(it->second);
         local_vars_.erase(it);
@@ -70,8 +73,9 @@ List Parser::readOprands_(TokenTag tag) {
         int num_arg = it->second;
         for (int i = 0; i < num_arg; ++i) {
             auto &&arg = parse_();
-            if (!arg.valid())
+            if (!arg.valid()) {
                 throw logic_error("Runtime error: expect a oprand but get a `<NULL>`...");
+            }
             ret.emplace_back(move(arg));
         }
         return ret;
@@ -246,6 +250,9 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::MUL: return magic2Number(args[0]) * magic2Number(args[1]);
     case TokenTag::DIV: return magic2Number(args[0]) / magic2Number(args[1]);
     case TokenTag::MOD: return magic2Number(args[0]) % magic2Number(args[1]);
+    case TokenTag::INT: return Number(floor(magic2Number(args[0])));
+    case TokenTag::SQRT: return Number(sqrt(magic2Number(args[0])));
+    case TokenTag::RANDOM: return Number(uni_real_dist(0, magic2Number(args[0]))(gen));
     case TokenTag::EQ: return Boolean(args[0] == args[1]);
     case TokenTag::GT: return Boolean(args[0] > args[1]);
     case TokenTag::LT: return Boolean(args[0] < args[1]);
