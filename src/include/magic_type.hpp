@@ -12,9 +12,9 @@ class Number;
 class Boolean;
 class List;
 
-enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
-
 namespace meta {
+
+enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
 
 template <TypeTag tag>
 struct type_of;
@@ -71,14 +71,14 @@ constexpr TypeTag tagOf() { // should be consteval in c++20
 
 class Base {
 protected:
-    TypeTag baseTag;
+    meta::TypeTag baseTag;
 
 public:
     Base() = default;
     Base(Base const &other) = delete;
 
     virtual ~Base() = default;
-    [[nodiscard]] TypeTag tag() const { return baseTag; }
+    [[nodiscard]] meta::TypeTag tag() const { return baseTag; }
     [[nodiscard]] Base *clone() const { return vClone_(); }
     [[nodiscard]] void *data() const { return vData_(); }
 
@@ -87,9 +87,9 @@ private:
     [[nodiscard]] virtual void *vData_() const = 0;
 };
 
-template <TypeTag tg_>
+template <meta::TypeTag tg_>
 class MagicData final : public Base {
-    template <TypeTag tag>
+    template <meta::TypeTag tag>
     using type_of = meta::type_of<tag>;
     typename type_of<tg_>::type d_data_;
 
@@ -113,8 +113,13 @@ private:
 
 class MagicType : private std::unique_ptr<Base> {
     using BasePtr = std::unique_ptr<Base>;
-    template <TypeTag tag>
+    template <meta::TypeTag tag>
     using type_of = meta::type_of<tag>;
+
+protected:
+    [[nodiscard]] meta::TypeTag tag() const {
+        return valid() ? (*this)->tag() : meta::TypeTag::UNKNOWN;
+    }
 
 public:
     MagicType() = default;
@@ -136,9 +141,14 @@ public:
         return *this;
     }
 
-    template <TypeTag tag, typename... Args>
+    template <meta::TypeTag tag, typename... Args>
     void assign(Args &&...args) {
         reset(new MagicData<tag>(std::forward<Args>(args)...));
+    }
+
+    template <typename T>
+    [[nodiscard]] bool is() const {
+        return valid() && tag() == meta::tagOf<T>();
     }
 
     // By default the get()-members check whether the specified <T>
@@ -160,9 +170,6 @@ public:
         return *static_cast<T *>((*this)->data());
     }
 
-    [[nodiscard]] TypeTag tag() const {
-        return valid() ? (*this)->tag() : TypeTag::UNKNOWN;
-    }
     [[nodiscard]] bool valid() const { return BasePtr::get() != nullptr; }
 };
 
