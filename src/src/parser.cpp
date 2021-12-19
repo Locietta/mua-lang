@@ -196,6 +196,10 @@ MagicType Parser::parse_() { // catch all exceptions
         }
         return eraseVar_(args[0].get<Word>().value);
     }
+    case TokenTag::ERASE_ALL: {
+        this->local_vars_.clear();
+        return Boolean(true);
+    }
     case TokenTag::IS_NAME: { // isname <Word>
         return Boolean(isName_(args[0]));
     }
