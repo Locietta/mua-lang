@@ -132,7 +132,7 @@ MagicType Parser::parse_() { // catch all exceptions
         const auto &arg_list = func[0].get<List>();
         const auto &func_body_list = func[1].get<List>();
         for (const auto &arg : arg_list) {
-            if (arg.is<Word>() || !Lexer::nameMatcher(arg.get<Word>())) {
+            if (!arg.is<Word>() || !Lexer::nameMatcher(arg.get<Word>())) {
                 throw logic_error("Invalid Function Parameter Name!");
             }
         }
