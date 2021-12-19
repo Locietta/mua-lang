@@ -12,9 +12,9 @@ class Number;
 class Boolean;
 class List;
 
-enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
-
 namespace meta {
+
+enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
 
 template <TypeTag tag>
 struct type_of;
@@ -39,34 +39,8 @@ struct type_of<TypeTag::LIST> {
     using type = List;
 };
 
-template <typename T>
+template <typename T> // already in C++20 std
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
-
-template <typename T>
-struct tag_of_impl;
-
-template <typename T>
-using tag_of = tag_of_impl<remove_cvref_t<T>>;
-
-template <>
-struct tag_of_impl<Number> {
-    static TypeTag const tag = TypeTag::NUMBER;
-};
-
-template <>
-struct tag_of_impl<Boolean> {
-    static TypeTag const tag = TypeTag::BOOLEAN;
-};
-
-template <>
-struct tag_of_impl<Word> {
-    static TypeTag const tag = TypeTag::WORD;
-};
-
-template <>
-struct tag_of_impl<List> {
-    static TypeTag const tag = TypeTag::LIST;
-};
 
 template <typename T, typename U>
 inline constexpr bool same = std::is_same_v<T, U>;
@@ -75,20 +49,36 @@ template <typename T, typename U = remove_cvref_t<T>>
 inline constexpr bool type_check =
     same<U, Number> || same<U, Word> || same<U, Boolean> || same<U, List>;
 
+template <typename T>
+constexpr TypeTag tagOf() { // should be consteval in c++20
+    using U = remove_cvref_t<T>;
+    if constexpr (same<U, Number>) {
+        return TypeTag::NUMBER;
+    } else if constexpr (same<U, Word>) {
+        return TypeTag::WORD;
+    } else if constexpr (same<U, Boolean>) {
+        return TypeTag::BOOLEAN;
+    } else if constexpr (same<U, List>) {
+        return TypeTag::LIST;
+    } else {
+        return TypeTag::UNKNOWN;
+    }
+}
+
 } // namespace meta
 
 /// impls
 
 class Base {
 protected:
-    TypeTag baseTag;
+    meta::TypeTag baseTag;
 
 public:
     Base() = default;
     Base(Base const &other) = delete;
 
     virtual ~Base() = default;
-    [[nodiscard]] TypeTag tag() const { return baseTag; }
+    [[nodiscard]] meta::TypeTag tag() const { return baseTag; }
     [[nodiscard]] Base *clone() const { return vClone_(); }
     [[nodiscard]] void *data() const { return vData_(); }
 
@@ -97,9 +87,9 @@ private:
     [[nodiscard]] virtual void *vData_() const = 0;
 };
 
-template <TypeTag tg_>
+template <meta::TypeTag tg_>
 class MagicData final : public Base {
-    template <TypeTag tag>
+    template <meta::TypeTag tag>
     using type_of = meta::type_of<tag>;
     typename type_of<tg_>::type d_data_;
 
@@ -123,10 +113,13 @@ private:
 
 class MagicType : private std::unique_ptr<Base> {
     using BasePtr = std::unique_ptr<Base>;
-    template <TypeTag tag>
+    template <meta::TypeTag tag>
     using type_of = meta::type_of<tag>;
-    template <typename T>
-    using tag_of = meta::tag_of<T>;
+
+protected:
+    [[nodiscard]] meta::TypeTag tag() const {
+        return valid() ? (*this)->tag() : meta::TypeTag::UNKNOWN;
+    }
 
 public:
     MagicType() = default;
@@ -135,7 +128,7 @@ public:
     /// avoid overwrite copy/move ctor
     template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
     MagicType(T &&low) {
-        assign<tag_of<T>::tag>(std::forward<T>(low));
+        assign<meta::tagOf<T>()>(std::forward<T>(low));
     }
     ~MagicType() = default;
 
@@ -144,37 +137,39 @@ public:
     /// generic assignment (Perfect Forwarding)
     template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
     MagicType &operator=(T &&value) {
-        assign<tag_of<T>::tag>(std::forward<T>(value));
+        assign<meta::tagOf<T>()>(std::forward<T>(value));
         return *this;
     }
 
-    template <TypeTag tag, typename... Args>
+    template <meta::TypeTag tag, typename... Args>
     void assign(Args &&...args) {
         reset(new MagicData<tag>(std::forward<Args>(args)...));
     }
 
-    // By default the get()-members check whether the specified <tag>
+    template <typename T>
+    [[nodiscard]] bool is() const {
+        return valid() && tag() == meta::tagOf<T>();
+    }
+
+    // By default the get()-members check whether the specified <T>
     // matches the tag returned by SType::tag (d_data's tag). If they
     // don't match a run-time fatal error results.
-    template <TypeTag tg>
-    typename type_of<tg>::type &get() {
-        if (tag() != tg) {
+    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    T &get() {
+        if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }
-        return *static_cast<typename type_of<tg>::type *>((*this)->data());
+        return *static_cast<T *>((*this)->data());
     }
 
-    template <TypeTag tg>
-    typename type_of<tg>::type const &get() const {
-        if (tag() != tg) {
+    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    T const &get() const {
+        if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }
-        return *static_cast<typename type_of<tg>::type *>((*this)->data());
+        return *static_cast<T *>((*this)->data());
     }
 
-    [[nodiscard]] TypeTag tag() const {
-        return valid() ? (*this)->tag() : TypeTag::UNKNOWN;
-    }
     [[nodiscard]] bool valid() const { return BasePtr::get() != nullptr; }
 };
 

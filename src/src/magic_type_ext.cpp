@@ -10,14 +10,14 @@
 using namespace std;
 
 Number magic2Number(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return arg.get<TypeTag::NUMBER>();
+    if (arg.is<Number>()) {
+        return arg.get<Number>();
     }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return Number(arg.get<TypeTag::BOOLEAN>() ? 1 : 0);
+    if (arg.is<Boolean>()) {
+        return {arg.get<Boolean>() ? 1.0 : 0.0};
     }
-    if (arg.tag() == TypeTag::WORD) {
-        const auto &word = arg.get<TypeTag::WORD>();
+    if (arg.is<Word>()) {
+        const auto &word = arg.get<Word>();
         if (Lexer::numberMatcher(word)) {
             return svto<double>(word);
         }
@@ -27,63 +27,65 @@ Number magic2Number(const MagicType &arg) {
 }
 
 Word magic2Word(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return to_string(arg.get<TypeTag::NUMBER>().value);
+    if (arg.is<Number>()) {
+        return to_string(arg.get<Number>().value);
     }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return arg.get<TypeTag::BOOLEAN>() ? "true"sv : "false"sv;
+    if (arg.is<Boolean>()) {
+        return arg.get<Boolean>() ? "true"sv : "false"sv;
     }
-    if (arg.tag() == TypeTag::WORD) {
-        return arg.get<TypeTag::WORD>();
+    if (arg.is<Word>()) {
+        return arg.get<Word>();
     }
     throw logic_error("Bad Conversion to <Word>");
 }
 
 Boolean magic2Boolean(const MagicType &arg) {
-    if (arg.tag() == TypeTag::NUMBER) {
-        return arg.get<TypeTag::NUMBER>().value != 0;
+    if (arg.is<Number>()) {
+        return arg.get<Number>().value != 0;
     }
-    if (arg.tag() == TypeTag::BOOLEAN) {
-        return arg.get<TypeTag::BOOLEAN>();
+    if (arg.is<Boolean>()) {
+        return arg.get<Boolean>();
     }
-    if (arg.tag() == TypeTag::WORD) {
-        string_view str = arg.get<TypeTag::WORD>();
+    if (arg.is<Word>()) {
+        string_view str = arg.get<Word>();
         if (str != "true" && str != "false") {
             throw logic_error("Bad Conversion to <Boolean>");
         }
         return str == "true";
     }
-    if (arg.tag() == TypeTag::LIST) {
-        return !arg.get<TypeTag::LIST>().empty();
+    if (arg.is<List>()) {
+        return !arg.get<List>().empty();
     }
     throw logic_error("Bad Conversion to <Boolean>");
 }
 
 ostream &operator<<(ostream &out, const MagicType &val) {
-    switch (val.tag()) {
-    case TypeTag::LIST: {
+    if (val.is<List>()) {
         out << "[ ";
-        for (const auto &item : val.get<TypeTag::LIST>()) {
+        for (const auto &item : val.get<List>()) {
             out << item << ' ';
         }
         return out << " ]";
     }
-    case TypeTag::NUMBER: return out << val.get<TypeTag::NUMBER>();
-    case TypeTag::BOOLEAN: return out << val.get<TypeTag::BOOLEAN>();
-    case TypeTag::WORD: return out << val.get<TypeTag::WORD>();
-    case TypeTag::UNKNOWN: return out << "<NULL>";
-    default: assert(false);
+    if (val.is<Number>()) {
+        return out << val.get<Number>();
     }
-    return out;
+    if (val.is<Boolean>()) {
+        return out << val.get<Boolean>();
+    }
+    if (val.is<Word>()) {
+        return out << val.get<Word>();
+    }
+
+    return out << "<Null>"; // unreachable
 }
 
 bool operator==(const MagicType &lhs, const MagicType &rhs) {
-    const auto tag1 = lhs.tag(), tag2 = rhs.tag();
-    if (tag1 == TypeTag::NUMBER && tag2 == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value == rhs.get<TypeTag::NUMBER>().value;
+    if (lhs.is<Number>() && rhs.is<Number>()) {
+        return lhs.get<Number>().value == rhs.get<Number>().value;
     }
-    if (tag1 == TypeTag::LIST || tag2 == TypeTag::LIST || tag1 == TypeTag::UNKNOWN ||
-        tag2 == TypeTag::UNKNOWN) { // QUESTION: compare between lists
+    if (lhs.is<List>() || rhs.is<List>() || !lhs.valid() ||
+        !rhs.valid()) { // QUESTION: compare between lists
         return false;
     }
     const auto word1 = magic2Word(lhs), word2 = magic2Word(rhs);
@@ -91,21 +93,21 @@ bool operator==(const MagicType &lhs, const MagicType &rhs) {
 }
 
 bool operator<(const MagicType &lhs, const MagicType &rhs) {
-    if (lhs.tag() == TypeTag::NUMBER && rhs.tag() == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value < rhs.get<TypeTag::NUMBER>().value;
+    if (lhs.is<Number>() && rhs.is<Number>()) {
+        return lhs.get<Number>().value < rhs.get<Number>().value;
     }
-    if (lhs.tag() == TypeTag::WORD && rhs.tag() == TypeTag::WORD) {
-        return lhs.get<TypeTag::WORD>().value < rhs.get<TypeTag::WORD>().value;
+    if (lhs.is<Word>() && rhs.is<Word>()) {
+        return lhs.get<Word>().value < rhs.get<Word>().value;
     }
     return false;
 }
 
 bool operator>(const MagicType &lhs, const MagicType &rhs) {
-    if (lhs.tag() == TypeTag::NUMBER && rhs.tag() == TypeTag::NUMBER) {
-        return lhs.get<TypeTag::NUMBER>().value > rhs.get<TypeTag::NUMBER>().value;
+    if (lhs.is<Number>() && rhs.is<Number>()) {
+        return lhs.get<Number>().value > rhs.get<Number>().value;
     }
-    if (lhs.tag() == TypeTag::WORD && rhs.tag() == TypeTag::WORD) {
-        return lhs.get<TypeTag::WORD>().value > rhs.get<TypeTag::WORD>().value;
+    if (lhs.is<Word>() && rhs.is<Word>()) {
+        return lhs.get<Word>().value > rhs.get<Word>().value;
     }
     return false;
 }

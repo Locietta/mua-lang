@@ -44,8 +44,8 @@ MagicType Parser::readVar_(std::string const &str) const {
 }
 
 bool Parser::isName_(MagicType const &val) noexcept {
-    if (val.tag() != TypeTag::WORD) return false;
-    const auto &str = val.get<TypeTag::WORD>().value;
+    if (!val.is<Word>()) return false;
+    const auto &str = val.get<Word>().value;
     for (const Parser *scope = this; scope != nullptr; scope = scope->parent_) {
         const auto &curr_vars = scope->local_vars_;
         auto it = curr_vars.find(str);
@@ -70,7 +70,8 @@ List Parser::readOprands_(TokenTag tag) {
         int num_arg = it->second;
         for (int i = 0; i < num_arg; ++i) {
             auto &&arg = parse_();
-            if (!arg.valid()) throw logic_error("expect a oprand but get `<NULL>`...");
+            if (!arg.valid())
+                throw logic_error("Runtime error: expect a oprand but get a `<NULL>`...");
             ret.emplace_back(move(arg));
         }
         return ret;
@@ -88,13 +89,13 @@ List Parser::readOprands_(TokenTag tag) {
 }
 
 static bool isEmpty(const MagicType &arg) {
-    if (arg.tag() == TypeTag::WORD) {
-        return arg.get<TypeTag::WORD>().value.empty();
+    if (arg.is<Word>()) {
+        return arg.get<Word>().value.empty();
     }
-    if (arg.tag() == TypeTag::LIST) {
-        return arg.get<TypeTag::LIST>().empty();
+    if (arg.is<List>()) {
+        return arg.get<List>().empty();
     }
-    return arg.tag() == TypeTag::UNKNOWN;
+    return !arg.valid();
 }
 
 MagicType Parser::runList_(List const &list) {
@@ -109,7 +110,7 @@ MagicType Parser::runList_(List const &list) {
 }
 
 static bool isValidName(const MagicType &val) {
-    return val.tag() == TypeTag::WORD && Lexer::nameMatcher(val.get<TypeTag::WORD>());
+    return val.is<Word>() && Lexer::nameMatcher(val.get<Word>());
 }
 
 MagicType Parser::parse_() { // catch all exceptions
@@ -119,20 +120,19 @@ MagicType Parser::parse_() { // catch all exceptions
     }
 
     if (tok.tag == TokenTag::NAME) {
-        auto arg = readVar_(tok.val.get<TypeTag::WORD>().value);
+        const auto &func_name = tok.val.get<Word>().value;
+        auto arg = readVar_(func_name);
         /* Do some syntax checks */
         if (!arg.valid()) throw logic_error("Unknown function name...");
-        if (arg.tag() != TypeTag::LIST) throw logic_error("Invalid Function!");
-        const auto &func = arg.get<TypeTag::LIST>();
-        if (func.size() != 2 || func[0].tag() != TypeTag::LIST ||
-            func[1].tag() != TypeTag::LIST) {
-            throw logic_error("Invalid Function!");
+        if (!arg.is<List>()) throw logic_error("Invalid Function!");
+        const auto &func = arg.get<List>();
+        if (func.size() != 2 || !func[0].is<List>() || !func[1].is<List>()) {
+            throw logic_error("Invalid Function `" + func_name + "`!");
         }
-        const auto &arg_list = func[0].get<TypeTag::LIST>();
-        const auto &func_body_list = func[1].get<TypeTag::LIST>();
+        const auto &arg_list = func[0].get<List>();
+        const auto &func_body_list = func[1].get<List>();
         for (const auto &arg : arg_list) {
-            if (arg.tag() != TypeTag::WORD ||
-                !Lexer::nameMatcher(arg.get<TypeTag::WORD>())) {
+            if (arg.is<Word>() || !Lexer::nameMatcher(arg.get<Word>())) {
                 throw logic_error("Invalid Function Parameter Name!");
             }
         }
@@ -141,7 +141,7 @@ MagicType Parser::parse_() { // catch all exceptions
         Parser func_exec_context(func_body, out_, this, {});
         /* pass args into func context */
         for (const auto &arg : arg_list) {
-            string_view arg_name = arg.get<TypeTag::WORD>();
+            string_view arg_name = arg.get<Word>();
             auto real_arg = parse_();
             if (!real_arg.valid()) {
                 throw logic_error("Not enough arguments for function call!");
@@ -159,13 +159,13 @@ MagicType Parser::parse_() { // catch all exceptions
         if (!isValidName(args[0])) {
             throw logic_error("`make` requires a <Name> as variable name");
         }
-        return (local_vars_[args[0].get<TypeTag::WORD>().value] = args[1]);
+        return (local_vars_[args[0].get<Word>().value] = args[1]);
     }
     case TokenTag::THING: { // thing <Word>
-        if (args[0].tag() != TypeTag::WORD) {
+        if (!args[0].is<Word>()) {
             throw logic_error("`thing` require a <Word> as argument");
         }
-        return readVar_(args[0].get<TypeTag::WORD>().value);
+        return readVar_(args[0].get<Word>().value);
     }
     case TokenTag::PRINT: { // print <Word>
         out_ << args[0] << endl;
@@ -184,39 +184,37 @@ MagicType Parser::parse_() { // catch all exceptions
         if (name_tok.tag != TokenTag::NAME) {
             throw logic_error("`:` expects a <Name> as argument");
         }
-        return readVar_(name_tok.val.get<TypeTag::WORD>().value);
+        return readVar_(name_tok.val.get<Word>().value);
     }
     case TokenTag::ERASE: { // erase <Name>
         if (!isValidName(args[0])) {
             throw logic_error("`erase` expects a <Name> as argument");
         }
-        return eraseVar_(args[0].get<TypeTag::WORD>().value);
+        return eraseVar_(args[0].get<Word>().value);
     }
     case TokenTag::IS_NAME: { // isname <Word>
         return Boolean(isName_(args[0]));
     }
     case TokenTag::IS_NUMBER: { // isnumber <Word|Number>
-        if (args[0].tag() == TypeTag::WORD &&
-            Lexer::numberMatcher(args[0].get<TypeTag::WORD>())) {
+        if (args[0].is<Word>() && Lexer::numberMatcher(args[0].get<Word>())) {
             return Boolean(true);
         }
-        return Boolean(args[0].tag() == TypeTag::NUMBER);
+        return Boolean(args[0].is<Number>());
     }
-    case TokenTag::IS_WORD: return Boolean(args[0].tag() == TypeTag::WORD);
-    case TokenTag::IS_LIST: return Boolean(args[0].tag() == TypeTag::LIST);
-    case TokenTag::IS_BOOL: return Boolean(args[0].tag() == TypeTag::BOOLEAN);
+    case TokenTag::IS_WORD: return Boolean(args[0].is<Word>());
+    case TokenTag::IS_LIST: return Boolean(args[0].is<List>());
+    case TokenTag::IS_BOOL: return Boolean(args[0].is<Boolean>());
     case TokenTag::IS_EMPTY: return Boolean(isEmpty(args[0]));
     case TokenTag::IF: {
         const auto &condition = args[0];
         const auto &branch1 = args[1];
         const auto &branch2 = args[2];
-        if (condition.tag() != TypeTag::BOOLEAN || branch1.tag() != TypeTag::LIST ||
-            branch2.tag() != TypeTag::LIST) {
+        if (!condition.is<Boolean>() || !branch1.is<List>() || !branch2.is<List>()) {
             throw logic_error("Syntax Error: if <Bool> <List> <List>");
         }
-        const auto &cond = condition.get<TypeTag::BOOLEAN>();
-        const auto &b1 = branch1.get<TypeTag::LIST>();
-        const auto &b2 = branch2.get<TypeTag::LIST>();
+        const auto &cond = condition.get<Boolean>();
+        const auto &b1 = branch1.get<List>();
+        const auto &b2 = branch2.get<List>();
         if (cond) {
             return Parser::runList_(b1);
         } else { // NOLINT
@@ -233,15 +231,15 @@ MagicType Parser::parse_() { // catch all exceptions
         if (!isValidName(args[0])) {
             throw logic_error("`export` expects a <Name> to be exported to global.");
         }
-        const auto &var_name = args[0].get<TypeTag::WORD>().value;
+        const auto &var_name = args[0].get<Word>().value;
         auto var_val = readVar_(var_name);
         if (!var_val.valid()) return {};
         p_global->local_vars_[var_name] = var_val;
         return var_val;
     }
     case TokenTag::RUN: {
-        if (args[0].tag() != TypeTag::LIST) throw logic_error("`run` expects a <List>");
-        return Parser::runList_(args[0].get<TypeTag::LIST>());
+        if (!args[0].is<List>()) throw logic_error("`run` expects a <List>");
+        return Parser::runList_(args[0].get<List>());
     }
     case TokenTag::ADD: return magic2Number(args[0]) + magic2Number(args[1]);
     case TokenTag::SUB: return magic2Number(args[0]) - magic2Number(args[1]);
@@ -254,14 +252,14 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::AND: return Boolean(magic2Boolean(args[0]) && magic2Boolean(args[1]));
     case TokenTag::OR: return Boolean(magic2Boolean(args[0]) || magic2Boolean(args[1]));
     case TokenTag::NOT: {
-        if (args[0].tag() == TypeTag::BOOLEAN) {
-            return args[0].get<TypeTag::BOOLEAN>().invert();
+        if (args[0].is<Boolean>()) {
+            return args[0].get<Boolean>().invert();
         }
-        if (args[0].tag() == TypeTag::LIST || args[0].tag() == TypeTag::WORD) {
+        if (args[0].is<List>() || args[0].is<Word>()) {
             return Boolean(isEmpty(args[0]));
         }
-        if (args[0].tag() == TypeTag::NUMBER) {
-            return Boolean(args[0].get<TypeTag::NUMBER>().value == 0);
+        if (args[0].is<Number>()) {
+            return Boolean(args[0].get<Number>().value == 0);
         }
         assert(false);
         return {}; // unreachable
