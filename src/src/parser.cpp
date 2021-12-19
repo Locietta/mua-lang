@@ -154,7 +154,8 @@ MagicType Parser::parse_() { // catch all exceptions
             throw logic_error("Invalid Function `" + func_name + "`!");
         }
         /* prepare function call context */
-        TokenStream func_body(func[1].get<List>());
+        const auto &func_body_list = func[1].get<List>();
+        TokenStream func_body(func_body_list);
         Parser func_exec_context(func_body, out_, this, {});
         /* pass args into func context */
         auto &func_scope = func_exec_context.local_vars_;
@@ -167,8 +168,11 @@ MagicType Parser::parse_() { // catch all exceptions
             func_scope.emplace(arg_name, move(real_arg));
         }
         /* load capture variables (will not overwrite) */
-        const auto &capture = *func[1].get<List>().captures;
-        copy(capture.begin(), capture.end(), inserter(func_scope, func_scope.begin()));
+        if (func_body_list.captures) {
+            const auto &capture = *func[1].get<List>().captures;
+            copy(capture.begin(), capture.end(),
+                 inserter(func_scope, func_scope.begin()));
+        }
         /* run function body */
         return func_exec_context.run();
     }
