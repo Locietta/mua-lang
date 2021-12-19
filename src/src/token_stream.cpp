@@ -27,18 +27,17 @@ Token TokenStream::extract() {
     }
     if (empty()) return {TokenTag::END_OF_INPUT};
 
-    const auto tag = it_->tag();
-    if (tag == TypeTag::LIST) {
+    if (it_->is<List>()) {
         return {TokenTag::LIST, *it_++};
     }
-    if (tag == TypeTag::NUMBER) {
+    if (it_->is<Number>()) {
         return {TokenTag::NUMBER, *it_++};
     }
-    if (tag == TypeTag::BOOLEAN) {
+    if (it_->is<Boolean>()) {
         return {TokenTag::BOOL, *it_++};
     }
-    if (tag == TypeTag::WORD) {
-        string str = it_->get<TypeTag::WORD>().value;
+    if (it_->is<Word>()) {
+        string str = it_->get<Word>().value;
         if (str.front() == '"') {
             ++it_;
             return {TokenTag::WORD, Word(str.substr(1))};
@@ -49,7 +48,7 @@ Token TokenStream::extract() {
                 return {TokenTag::DEFER};
             }
             str = str.substr(1);
-            it_->get<TypeTag::WORD>().value = move(str);
+            it_->get<Word>().value = move(str);
             return {TokenTag::DEFER};
         }
         if (Lexer::nameMatcher(str)) {
