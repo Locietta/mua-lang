@@ -4,8 +4,6 @@
 #include <map>
 #include <ostream>
 #include <ref_ptr.h>
-#include <utility>
-
 
 namespace std {
 extern std::ostream cout;
@@ -16,12 +14,10 @@ class TokenStream;
 class List;
 enum class TokenTag;
 
-extern const std::map<std::string, MagicType> global_init; // some pre-defined globals
+using VarTable = std::map<std::string, MagicType>;
 
 class Parser {
 private:
-    using VarTable = std::map<std::string, MagicType>;
-
     RefPtr<TokenStream> token_stream_;
     std::ostream &out_;
     Parser *parent_;
@@ -33,12 +29,12 @@ private:
     MagicType eraseVar_(std::string const &str);
     bool isName_(MagicType const &val) noexcept;
     List readOprands_(TokenTag tag);
+    void tryParseFunc_(List& func);
 
 public:
-    Parser(TokenStream &tokStream, std::ostream &out = std::cout,
-           Parser *parent = nullptr, VarTable const & vars = global_init)
-        : token_stream_(tokStream), out_(out), parent_(parent),
-          local_vars_(vars) {}
+    Parser(TokenStream &tokStream, std::ostream &out = std::cout);
+    Parser(TokenStream &tokStream, std::ostream &out, Parser *parent,
+           VarTable const &vars);
     [[maybe_unused]] MagicType run();
 };
 

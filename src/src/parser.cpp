@@ -36,6 +36,13 @@ const static unordered_map<TokenTag, int> op_num_needed{
     {TokenTag::IF, 3},        {TokenTag::RETURN, 1},
 };
 
+Parser::Parser(TokenStream &tokStream, std::ostream &out, Parser *parent,
+               VarTable const &vars)
+    : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
+
+Parser::Parser(TokenStream &tokStream, std::ostream &out)
+    : token_stream_(tokStream), out_(out), parent_(nullptr), local_vars_(global_init) {}
+
 MagicType Parser::readVar_(std::string const &str) const {
     for (const Parser *scope = this; scope != nullptr; scope = scope->parent_) {
         const auto &curr_vars = scope->local_vars_;
@@ -84,6 +91,18 @@ List Parser::readOprands_(TokenTag tag) {
     return {}; // unreachable
 }
 
+void Parser::tryParseFunc_(List &func) {
+    if (!func.isFuncLike()) return;
+    func.isFunc = true;
+    if (this->parent_ == nullptr) return;
+    func.captures = make_shared<VarTable>();
+    for (const Parser *scope = this; scope->parent_ != nullptr; scope = scope->parent_) {
+        const auto &local = scope->local_vars_;
+        auto &capture = *func.captures;
+        copy(local.begin(), local.end(), inserter(capture, capture.begin()));
+    }
+}
+
 [[maybe_unused]] MagicType Parser::run() {
     MagicType ret;
     while (!token_stream_->empty()) {
@@ -127,31 +146,29 @@ MagicType Parser::parse_() { // catch all exceptions
         const auto &func_name = tok.val.get<Word>().value;
         auto arg = readVar_(func_name);
         /* Do some syntax checks */
-        if (!arg.valid()) throw logic_error("Unknown function name...");
-        if (!arg.is<List>()) throw logic_error("Invalid Function!");
-        const auto &func = arg.get<List>();
-        if (func.size() != 2 || !func[0].is<List>() || !func[1].is<List>()) {
+        if (!arg.valid() || !arg.is<List>()) {
             throw logic_error("Invalid Function `" + func_name + "`!");
         }
-        const auto &arg_list = func[0].get<List>();
-        const auto &func_body_list = func[1].get<List>();
-        for (const auto &arg : arg_list) {
-            if (!arg.is<Word>() || !Lexer::nameMatcher(arg.get<Word>())) {
-                throw logic_error("Invalid Function Parameter Name!");
-            }
+        const auto &func = arg.get<List>();
+        if (!func.isFuncLike()) {
+            throw logic_error("Invalid Function `" + func_name + "`!");
         }
         /* prepare function call context */
-        TokenStream func_body(func_body_list);
+        TokenStream func_body(func[1].get<List>());
         Parser func_exec_context(func_body, out_, this, {});
         /* pass args into func context */
-        for (const auto &arg : arg_list) {
+        auto &func_scope = func_exec_context.local_vars_;
+        for (const auto &arg : func[0].get<List>()) {
             string_view arg_name = arg.get<Word>();
             auto real_arg = parse_();
             if (!real_arg.valid()) {
                 throw logic_error("Not enough arguments for function call!");
             }
-            func_exec_context.local_vars_.emplace(arg_name, move(real_arg));
+            func_scope.emplace(arg_name, move(real_arg));
         }
+        /* load capture variables (will not overwrite) */
+        const auto &capture = *func[1].get<List>().captures;
+        copy(capture.begin(), capture.end(), inserter(func_scope, func_scope.begin()));
         /* run function body */
         return func_exec_context.run();
     }
@@ -162,6 +179,9 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::MAKE: { // make <Name> <Val>
         if (!isValidName(args[0])) {
             throw logic_error("`make` requires a <Name> as variable name");
+        }
+        if (args[1].is<List>()) {
+            tryParseFunc_(args[1].get<List>());
         }
         return (local_vars_[args[0].get<Word>().value] = args[1]);
     }
