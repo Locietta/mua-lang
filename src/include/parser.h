@@ -4,6 +4,8 @@
 #include <map>
 #include <ostream>
 #include <ref_ptr.h>
+#include <utility>
+
 
 namespace std {
 extern std::ostream cout;
@@ -27,15 +29,16 @@ private:
 
     MagicType parse_();
     MagicType runList_(List const &list);
-    MagicType readVar_(std::string const &str) const;
+    [[nodiscard]] MagicType readVar_(std::string const &str) const;
     MagicType eraseVar_(std::string const &str);
     bool isName_(MagicType const &val) noexcept;
     List readOprands_(TokenTag tag);
 
 public:
     Parser(TokenStream &tokStream, std::ostream &out = std::cout,
-           Parser *parent = nullptr, const VarTable &vars = global_init)
-        : token_stream_(tokStream), out_(out), parent_(parent), local_vars_(vars) {}
+           Parser *parent = nullptr, VarTable const & vars = global_init)
+        : token_stream_(tokStream), out_(out), parent_(parent),
+          local_vars_(vars) {}
     [[maybe_unused]] MagicType run();
 };
 

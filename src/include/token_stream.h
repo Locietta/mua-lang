@@ -19,7 +19,7 @@ private:
 public:
     TokenStream(Lexer &lexer);
     TokenStream(const List &list);
-    bool empty() const noexcept;
+    [[nodiscard]] bool empty() const noexcept;
     Token extract();
 };
 

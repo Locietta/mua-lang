@@ -17,8 +17,8 @@ extern std::istream cin;
 class Lexer {
 private:
     std::istream &in_;
-    List parseList_() const;
-    char peekInput_() const;
+    [[nodiscard]] List parseList_() const;
+    [[nodiscard]] char peekInput_() const;
 
 public:
     static TokenTag opMatcher(std::string_view sv);
@@ -26,7 +26,7 @@ public:
     static bool numberMatcher(std::string_view sv);
     Lexer(std::istream &in = std::cin);
     Token lex();
-    bool eof() const { return peekInput_() == 0; }
+    [[nodiscard]] bool eof() const { return peekInput_() == 0; }
 };
 
 #endif // _LEXER_H_
