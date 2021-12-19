@@ -39,34 +39,8 @@ struct type_of<TypeTag::LIST> {
     using type = List;
 };
 
-template <typename T>
+template <typename T> // already in C++20 std
 using remove_cvref_t = std::remove_cv_t<std::remove_reference_t<T>>;
-
-template <typename T>
-struct tag_of_impl;
-
-template <typename T>
-using tag_of = tag_of_impl<remove_cvref_t<T>>;
-
-template <>
-struct tag_of_impl<Number> {
-    static TypeTag const tag = TypeTag::NUMBER;
-};
-
-template <>
-struct tag_of_impl<Boolean> {
-    static TypeTag const tag = TypeTag::BOOLEAN;
-};
-
-template <>
-struct tag_of_impl<Word> {
-    static TypeTag const tag = TypeTag::WORD;
-};
-
-template <>
-struct tag_of_impl<List> {
-    static TypeTag const tag = TypeTag::LIST;
-};
 
 template <typename T, typename U>
 inline constexpr bool same = std::is_same_v<T, U>;
@@ -74,6 +48,22 @@ inline constexpr bool same = std::is_same_v<T, U>;
 template <typename T, typename U = remove_cvref_t<T>>
 inline constexpr bool type_check =
     same<U, Number> || same<U, Word> || same<U, Boolean> || same<U, List>;
+
+template <typename T>
+constexpr TypeTag tagOf() { // should be consteval in c++20
+    using U = remove_cvref_t<T>;
+    if constexpr (same<U, Number>) {
+        return TypeTag::NUMBER;
+    } else if constexpr (same<U, Word>) {
+        return TypeTag::WORD;
+    } else if constexpr (same<U, Boolean>) {
+        return TypeTag::BOOLEAN;
+    } else if constexpr (same<U, List>) {
+        return TypeTag::LIST;
+    } else {
+        return TypeTag::UNKNOWN;
+    }
+}
 
 } // namespace meta
 
@@ -125,8 +115,6 @@ class MagicType : private std::unique_ptr<Base> {
     using BasePtr = std::unique_ptr<Base>;
     template <TypeTag tag>
     using type_of = meta::type_of<tag>;
-    template <typename T>
-    using tag_of = meta::tag_of<T>;
 
 public:
     MagicType() = default;
@@ -135,7 +123,7 @@ public:
     /// avoid overwrite copy/move ctor
     template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
     MagicType(T &&low) {
-        assign<tag_of<T>::tag>(std::forward<T>(low));
+        assign<meta::tagOf<T>()>(std::forward<T>(low));
     }
     ~MagicType() = default;
 
@@ -144,7 +132,7 @@ public:
     /// generic assignment (Perfect Forwarding)
     template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
     MagicType &operator=(T &&value) {
-        assign<tag_of<T>::tag>(std::forward<T>(value));
+        assign<meta::tagOf<T>()>(std::forward<T>(value));
         return *this;
     }
 
