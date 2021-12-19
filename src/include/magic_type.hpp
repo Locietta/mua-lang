@@ -14,6 +14,8 @@ class List;
 
 namespace meta {
 
+// TODO: use TypeLists instead of hard coding types
+
 enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
 
 template <TypeTag tag>
