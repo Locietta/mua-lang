@@ -141,23 +141,23 @@ public:
         reset(new MagicData<tag>(std::forward<Args>(args)...));
     }
 
-    // By default the get()-members check whether the specified <tag>
+    // By default the get()-members check whether the specified <T>
     // matches the tag returned by SType::tag (d_data's tag). If they
     // don't match a run-time fatal error results.
-    template <TypeTag tg>
-    typename type_of<tg>::type &get() {
-        if (tag() != tg) {
+    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    T &get() {
+        if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }
-        return *static_cast<typename type_of<tg>::type *>((*this)->data());
+        return *static_cast<T *>((*this)->data());
     }
 
-    template <TypeTag tg>
-    typename type_of<tg>::type const &get() const {
-        if (tag() != tg) {
+    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    T const &get() const {
+        if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }
-        return *static_cast<typename type_of<tg>::type *>((*this)->data());
+        return *static_cast<T *>((*this)->data());
     }
 
     [[nodiscard]] TypeTag tag() const {
