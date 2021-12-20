@@ -6,4 +6,4 @@ mua
 .vscode
 # clangd cache
 .cache
-test.txt
+test*
