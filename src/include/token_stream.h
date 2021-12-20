@@ -8,6 +8,7 @@
 
 class Token;
 
+/// FIXME: should be directly integrated into `Lexer`
 class TokenStream { // TODO: consider virtual binding
 private:
     enum Mode { LEXER, LIST };

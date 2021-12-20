@@ -327,6 +327,19 @@ MagicType Parser::parse_() { // catch all exceptions
         saveNameSpace_(args[0].get<Word>().value);
         return args[0];
     }
+    case TokenTag::LOAD: {
+        if (!args[0].is<Word>()) {
+            throw logic_error("`load` requires a <Word> as filename!");
+        }
+        ifstream fin(args[0].get<Word>().value);
+        RefPtr<TokenStream> buf_stream = token_stream_;
+        Lexer name_loader{fin};
+        TokenStream loader_stream{name_loader};
+        token_stream_ = RefPtr(loader_stream);
+        run();
+        token_stream_ = buf_stream;
+        return Boolean(true);
+    }
     case TokenTag::NUMBER:
     case TokenTag::BOOL:
     case TokenTag::WORD:
