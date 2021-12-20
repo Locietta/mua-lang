@@ -168,8 +168,8 @@ MagicType Parser::parse_() { // catch all exceptions
             func_scope.emplace(arg_name, move(real_arg));
         }
         /* load capture variables (will not overwrite) */
-        if (func_body_list.captures) {
-            const auto &capture = *func[1].get<List>().captures;
+        if (func.captures) {
+            const auto &capture = *func.captures;
             copy(capture.begin(), capture.end(),
                  inserter(func_scope, func_scope.begin()));
         }
@@ -237,7 +237,7 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::IS_LIST: return Boolean(args[0].is<List>());
     case TokenTag::IS_BOOL: return Boolean(args[0].is<Boolean>());
     case TokenTag::IS_EMPTY: return Boolean(isEmpty(args[0]));
-    case TokenTag::IF: {
+    case TokenTag::IF: { // if <Bool> <List> <List>, no scope generated
         const auto &condition = args[0];
         const auto &branch1 = args[1];
         const auto &branch2 = args[2];
@@ -255,6 +255,9 @@ MagicType Parser::parse_() { // catch all exceptions
     }
     case TokenTag::RETURN: {
         token_stream_ = RefPtr(empty_stream); // close input stream
+        if (args[0].is<List>()) {
+            tryParseFunc_(args[0].get<List>());
+        }
         return args[0];
     }
     case TokenTag::EXPORT: {
