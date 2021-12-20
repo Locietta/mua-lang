@@ -9,6 +9,7 @@
 #include "token_stream.h"
 #include <cassert>
 #include <exception>
+#include <fstream>
 #include <random>
 #include <string>
 #include <unordered_map>
@@ -22,18 +23,22 @@ static TokenStream empty_stream(List{});
 static mt19937_64 gen{random_device{}()};
 
 const static unordered_map<TokenTag, int> op_num_needed{
-    {TokenTag::MAKE, 2},      {TokenTag::THING, 1},    {TokenTag::PRINT, 1},
-    {TokenTag::READ, 0},      {TokenTag::DEFER, 0},    {TokenTag::ERASE, 1},
-    {TokenTag::RUN, 1},       {TokenTag::EXPORT, 1},   {TokenTag::ERASE_ALL, 0},
-    {TokenTag::RANDOM, 1},    {TokenTag::INT, 1},      {TokenTag::SQRT, 1},
-    {TokenTag::ADD, 2},       {TokenTag::SUB, 2},      {TokenTag::MUL, 2},
-    {TokenTag::DIV, 2},       {TokenTag::MOD, 2},      {TokenTag::IS_NAME, 1},
-    {TokenTag::IS_NUMBER, 1}, {TokenTag::IS_WORD, 1},  {TokenTag::IS_LIST, 1},
-    {TokenTag::IS_BOOL, 1},   {TokenTag::IS_EMPTY, 1}, {TokenTag::EQ, 2},
-    {TokenTag::GT, 2},        {TokenTag::LT, 2},       {TokenTag::AND, 2},
-    {TokenTag::OR, 2},        {TokenTag::NOT, 2},      {TokenTag::WORD, 0},
-    {TokenTag::BOOL, 0},      {TokenTag::NUMBER, 0},   {TokenTag::LIST, 0},
-    {TokenTag::IF, 3},        {TokenTag::RETURN, 1},
+    {TokenTag::MAKE, 2},       {TokenTag::THING, 1},     {TokenTag::PRINT, 1},
+    {TokenTag::READ, 0},       {TokenTag::DEFER, 0},     {TokenTag::ERASE, 1},
+    {TokenTag::RUN, 1},        {TokenTag::EXPORT, 1},    {TokenTag::ERASE_ALL, 0},
+    {TokenTag::RANDOM, 1},     {TokenTag::INT, 1},       {TokenTag::SQRT, 1},
+    {TokenTag::ADD, 2},        {TokenTag::SUB, 2},       {TokenTag::MUL, 2},
+    {TokenTag::DIV, 2},        {TokenTag::MOD, 2},       {TokenTag::IS_NAME, 1},
+    {TokenTag::IS_NUMBER, 1},  {TokenTag::IS_WORD, 1},   {TokenTag::IS_LIST, 1},
+    {TokenTag::IS_BOOL, 1},    {TokenTag::IS_EMPTY, 1},  {TokenTag::EQ, 2},
+    {TokenTag::GT, 2},         {TokenTag::LT, 2},        {TokenTag::AND, 2},
+    {TokenTag::OR, 2},         {TokenTag::NOT, 2},       {TokenTag::WORD, 0},
+    {TokenTag::BOOL, 0},       {TokenTag::NUMBER, 0},    {TokenTag::LIST, 0},
+    {TokenTag::IF, 3},         {TokenTag::RETURN, 1},    {TokenTag::SAVE, 1},
+    {TokenTag::LOAD, 1},       {TokenTag::READ_LIST, 0}, {TokenTag::WORD_MERGE, 2},
+    {TokenTag::LIST_MERGE, 2}, {TokenTag::PAIR, 2},      {TokenTag::JOIN, 2},
+    {TokenTag::FIRST, 1},      {TokenTag::LAST, 1},      {TokenTag::BUTFIRST, 1},
+    {TokenTag::BUTLAST, 1},
 };
 
 Parser::Parser(TokenStream &tokStream, std::ostream &out, Parser *parent,
@@ -119,6 +124,19 @@ static bool isEmpty(const MagicType &arg) {
         return arg.get<List>().empty();
     }
     return !arg.valid();
+}
+
+void Parser::saveNameSpace_(const string &path) {
+    VarTable curr_space{local_vars_};
+    for (const Parser *scope = this->parent_; scope != nullptr; scope = scope->parent_) {
+        const auto &local = scope->local_vars_;
+        copy(local.begin(), local.end(), inserter(curr_space, curr_space.begin()));
+    }
+    ofstream fout(path);
+    if (!fout) throw logic_error("Failed to open file \"" + path + "\"!");
+    for (const auto &[name, var] : curr_space) {
+        fout << "make \"" << name << " " << var << endl;
+    }
 }
 
 MagicType Parser::runList_(List const &list) {
@@ -301,6 +319,13 @@ MagicType Parser::parse_() { // catch all exceptions
         }
         assert(false);
         return {}; // unreachable
+    }
+    case TokenTag::SAVE: {
+        if (!args[0].is<Word>()) {
+            throw logic_error("`save` requires a <Word> as filename!");
+        }
+        saveNameSpace_(args[0].get<Word>().value);
+        return args[0];
     }
     case TokenTag::NUMBER:
     case TokenTag::BOOL:
