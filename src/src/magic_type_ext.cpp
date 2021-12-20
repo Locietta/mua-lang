@@ -65,7 +65,7 @@ ostream &operator<<(ostream &out, const MagicType &val) {
         for (const auto &item : val.get<List>()) {
             out << item << ' ';
         }
-        return out << " ]";
+        return out << "]";
     }
     if (val.is<Number>()) {
         return out << val.get<Number>();

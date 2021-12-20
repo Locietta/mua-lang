@@ -29,7 +29,8 @@ private:
     MagicType eraseVar_(std::string const &str);
     bool isName_(MagicType const &val) noexcept;
     List readOprands_(TokenTag tag);
-    void tryParseFunc_(List& func);
+    void tryParseFunc_(List &func);
+    void saveNameSpace_(std::string const &path);
 
 public:
     Parser(TokenStream &tokStream, std::ostream &out = std::cout);

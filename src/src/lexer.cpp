@@ -126,6 +126,17 @@ const static unordered_map<string_view, TokenTag> operations{
     {"int", TokenTag::INT},
     {"sqrt", TokenTag::SQRT},
     {"erall", TokenTag::ERASE_ALL},
+    {"save", TokenTag::SAVE},
+    {"load", TokenTag::LOAD},
+    {"readlist", TokenTag::READ_LIST},
+    {"word", TokenTag::WORD_MERGE},
+    {"sentence", TokenTag::LIST_MERGE},
+    {"list", TokenTag::PAIR},
+    {"join", TokenTag::JOIN},
+    {"first", TokenTag::FIRST},
+    {"last", TokenTag::LAST},
+    {"butfirst", TokenTag::BUTFIRST},
+    {"butlast", TokenTag::BUTLAST},
 };
 
 TokenTag Lexer::opMatcher(string_view sv) {
