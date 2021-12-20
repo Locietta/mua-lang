@@ -320,6 +320,101 @@ MagicType Parser::parse_() { // catch all exceptions
         assert(false);
         return {}; // unreachable
     }
+    case TokenTag::READ_LIST: {
+        string line_buf;
+        getline(cin, line_buf);
+        vector<string_view> list_toks;
+        split(line_buf, list_toks, ' ', true);
+        List ret;
+        transform(list_toks.begin(), list_toks.end(), back_inserter(ret),
+                  [](string_view sv) -> MagicType {
+                      if (Lexer::numberMatcher(sv)) {
+                          return Number(svto<double>(sv));
+                      }
+                      if (sv == "true" || sv == "false") {
+                          return Boolean(sv == "true");
+                      }
+                      return Word(sv);
+                  });
+        return ret;
+    }
+    case TokenTag::WORD_MERGE: {
+        if (!args[0].is<Word>() || args[1].is<List>()) {
+            throw logic_error("Syntax error: word <Word> <Word|Number|Bool>");
+        }
+        args[0].get<Word>().value += magic2Word(args[1]);
+        return args[0];
+    }
+    case TokenTag::LIST_MERGE: {
+        if (args[0].is<List>()) {
+            auto &list1 = args[0].get<List>();
+            if (args[1].is<List>()) {
+                auto &list2 = args[1].get<List>();
+                move(list2.begin(), list2.end(), back_inserter(list1));
+            } else {
+                list1.emplace_back(move(args[1]));
+            }
+            return args[0];
+        }
+        if (args[1].is<List>()) {
+            auto &list2 = args[1].get<List>();
+            list2.emplace(list2.begin(), move(args[0]));
+            return args[1];
+        }
+        return args;
+    }
+    case TokenTag::PAIR: {
+        return args;
+    }
+    case TokenTag::JOIN: {
+        if (!args[0].is<List>()) {
+            throw logic_error("Syntax error: join <List> <value>");
+        }
+        args[0].get<List>().emplace_back(move(args[1]));
+        return args[0];
+    }
+    case TokenTag::FIRST: {
+        if (args[0].is<Word>()) {
+            string_view sv = args[0].get<Word>();
+            return Word(sv.substr(0, 1));
+        }
+        if (args[0].is<List>()) {
+            return args[0].get<List>().front(); // FIXME: use move to elide List::[] copy
+        }
+        throw logic_error("`first` expects a <Word|List>!");
+    }
+    case TokenTag::LAST: {
+        if (args[0].is<Word>()) {
+            string_view sv = args[0].get<Word>();
+            return Word(sv.substr(sv.length() - 1));
+        }
+        if (args[0].is<List>()) {
+            return args[0].get<List>().back(); // FIXME: use move to elide List::[] copy
+        }
+        throw logic_error("`last` expects a <Word|List>!");
+    }
+    case TokenTag::BUTFIRST: {
+        if (args[0].is<Word>()) {
+            string_view sv = args[0].get<Word>();
+            return Word(sv.substr(1));
+        }
+        if (args[0].is<List>()) {
+            args[0].get<List>().pop_front();
+            return args[0]; // FIXME: use move to elide List::[] copy
+        }
+        throw logic_error("`first` expects a <Word|List>!");
+    }
+    case TokenTag::BUTLAST: {
+        if (args[0].is<Word>()) {
+            args[0].get<Word>().value.pop_back();
+            return args[0];
+        }
+        if (args[0].is<List>()) {
+            args[0].get<List>().pop_back();
+            return args[0]; // FIXME: use move to elide List::[] copy
+        }
+        throw logic_error("`first` expects a <Word|List>!");
+    }
     case TokenTag::SAVE: {
         if (!args[0].is<Word>()) {
             throw logic_error("`save` requires a <Word> as filename!");
