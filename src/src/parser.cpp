@@ -95,7 +95,7 @@ void Parser::tryParseFunc_(List &func) {
     if (!func.isFuncLike()) return;
     func.isFunc = true;
     if (this->parent_ == nullptr) return;
-    func.captures = make_shared<VarTable>();
+    if (func.captures == nullptr) func.captures = make_shared<VarTable>();
     for (const Parser *scope = this; scope->parent_ != nullptr; scope = scope->parent_) {
         const auto &local = scope->local_vars_;
         auto &capture = *func.captures;
