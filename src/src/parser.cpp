@@ -213,8 +213,15 @@ MagicType Parser::parse_() { // catch all exceptions
         }
         return readVar_(args[0].get<Word>().value);
     }
-    case TokenTag::PRINT: { // print <Word>
-        out_ << args[0] << endl;
+    case TokenTag::PRINT: { // print <Val>
+        if (args[0].is<List>()) {
+            for (const auto &e : args[0].get<List>()) {
+                out_ << e << ' ';
+            }
+            out_ << endl;
+        } else {
+            out_ << args[0] << endl;
+        }
         return args[0];
     }
     case TokenTag::READ: { // read
@@ -374,35 +381,26 @@ MagicType Parser::parse_() { // catch all exceptions
         return args[0];
     }
     case TokenTag::FIRST: {
-        if (args[0].is<Word>()) {
-            string_view sv = args[0].get<Word>();
-            return Word(sv.substr(0, 1));
-        }
         if (args[0].is<List>()) {
             return args[0].get<List>().front(); // FIXME: use move to elide List::[] copy
         }
-        throw logic_error("`first` expects a <Word|List>!");
+        string_view sv = magic2Word(args[0]);
+        return Word(sv.substr(0, 1));
     }
     case TokenTag::LAST: {
-        if (args[0].is<Word>()) {
-            string_view sv = args[0].get<Word>();
-            return Word(sv.substr(sv.length() - 1));
-        }
         if (args[0].is<List>()) {
             return args[0].get<List>().back(); // FIXME: use move to elide List::[] copy
         }
-        throw logic_error("`last` expects a <Word|List>!");
+        string_view sv = magic2Word(args[0]);
+        return Word(sv.substr(sv.length() - 1));
     }
     case TokenTag::BUTFIRST: {
-        if (args[0].is<Word>()) {
-            string_view sv = args[0].get<Word>();
-            return Word(sv.substr(1));
-        }
         if (args[0].is<List>()) {
             args[0].get<List>().pop_front();
             return args[0]; // FIXME: use move to elide List::[] copy
         }
-        throw logic_error("`first` expects a <Word|List>!");
+        string_view sv = magic2Word(args[0]);
+        return Word(sv.substr(1));
     }
     case TokenTag::BUTLAST: {
         if (args[0].is<Word>()) {
@@ -413,7 +411,9 @@ MagicType Parser::parse_() { // catch all exceptions
             args[0].get<List>().pop_back();
             return args[0]; // FIXME: use move to elide List::[] copy
         }
-        throw logic_error("`first` expects a <Word|List>!");
+        auto&& w = magic2Word(args[0]);
+        w.value.pop_back();
+        return move(w);
     }
     case TokenTag::SAVE: {
         if (!args[0].is<Word>()) {
