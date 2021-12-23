@@ -3,30 +3,22 @@ variables:
   ENV: ''
   IN: $in
   STDOUT: $stdout
+  MUAFILE: $muafile
 
 stages:
-  - pre
   - build
   - commit
-
-prepare:
-  stage: pre
-  script:
-    - cat $in > in
-    - cat $stdout > stdout
-
-  artifacts:
-    paths:
-      - in
-      - stdout
 
 build_test:
   stage: build
   rules:
     - if: $ENV == ""
       when: manual
-  image: xw77714298/combinedenv:v1
+  image: xw77714298/combinedenv:v2
   script:
+    - cat $in > in
+    - cat $stdout > stdout
+    - cat $muafile > online.mua
     - javac Test.java
     - sh build.sh
     - touch res.txt score

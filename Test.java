@@ -41,7 +41,7 @@ public class Test {
             String[] a = line.split(",");
             this.type = Type.valueOf(a[0].toUpperCase());
             this.value = a[1];
-            this.mark = Integer.valueOf(a[2]);
+            this.mark = Integer.valueOf(a[2].trim());
             this.comment = a[3];
         }
 
@@ -74,29 +74,14 @@ public class Test {
         }
         sout.close();
 
-        // FileInputStream cin = new FileInputStream("in");
-
-        // piped stream to get app's output
-        // PipedOutputStream pos = new PipedOutputStream();
-        // PipedInputStream pin = new PipedInputStream(pos);
-        // PrintStream cout = new PrintStream(pos, true);
-        // System.setIn(cin);
-        // System.setOut(cout);
-        // System.setErr(cout);
-        // for result output
         PrintWriter resultout = new PrintWriter(new OutputStreamWriter(new FileOutputStream(args[0])));
         // execution
         int mark = 0;
         try {
             var process = new ProcessBuilder().command("sh", "run.sh").start();
+            inheritIO(process.getErrorStream(), System.err);
             var pin = process.getInputStream();
-            // cout.flush();
-            // cout.close();
-            // read app's output
             Scanner in = new Scanner(pin);
-            // while ( in.hasNextLine() ) {
-            // resultout.println(in.nextLine());
-            // }
             Iterator<Value> it = alValue.iterator();
             while (in.hasNext() && it.hasNext()) {
                 String line = in.nextLine();
@@ -106,11 +91,10 @@ public class Test {
                     resultout.println(v.comment + ": PASS");
                 } else {
                     resultout.println(v.comment + ": FAIL");
-                    // resultout.println("###"+line+":"+v.toString()+"###");
                 }
             }
+            in.close();
         } catch (Throwable e) {
-            // resultout.println(e.getClass());
             e.printStackTrace(resultout);
         }
         var scoreout = new PrintWriter(new OutputStreamWriter(new FileOutputStream("score")));
@@ -118,6 +102,17 @@ public class Test {
         scoreout.println(mark);
         resultout.close();
         scoreout.close();
-        // cin.close();s
+    }
+
+    private static void inheritIO(final InputStream src, final PrintStream dest) {
+        new Thread(new Runnable() {
+            public void run() {
+                Scanner sc = new Scanner(src);
+                while (sc.hasNextLine()) {
+                    dest.println(sc.nextLine());
+                }
+            }
+        }).start();
     }
 }
+
