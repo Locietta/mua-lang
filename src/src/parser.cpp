@@ -397,7 +397,7 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::BUTFIRST: {
         if (args[0].is<List>()) {
             args[0].get<List>().pop_front();
-            return args[0]; // FIXME: use move to elide List::[] copy
+            return move(args[0]);
         }
         string_view sv = magic2Word(args[0]);
         return Word(sv.substr(1));
