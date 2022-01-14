@@ -14,6 +14,8 @@ class List;
 
 namespace meta {
 
+// TODO: use TypeLists instead of hard coding types
+
 enum class TypeTag { BOOLEAN, NUMBER, WORD, LIST, UNKNOWN };
 
 template <TypeTag tag>
@@ -148,22 +150,25 @@ public:
 
     template <typename T>
     [[nodiscard]] bool is() const {
+        static_assert(meta::type_check<T>, "unregistered type for `MagicType`");
         return valid() && tag() == meta::tagOf<T>();
     }
 
     // By default the get()-members check whether the specified <T>
     // matches the tag returned by SType::tag (d_data's tag). If they
     // don't match a run-time fatal error results.
-    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    template <typename T>
     T &get() {
+        static_assert(meta::type_check<T>, "unregistered type for `MagicType`");
         if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }
         return *static_cast<T *>((*this)->data());
     }
 
-    template <typename T, typename U = std::enable_if_t<meta::type_check<T>>>
+    template <typename T>
     T const &get() const {
+        static_assert(meta::type_check<T>, "unregistered type for `MagicType`");
         if (tag() != meta::tagOf<T>()) {
             assert(false && "Unmatched Type!");
         }

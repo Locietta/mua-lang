@@ -61,11 +61,7 @@ Boolean magic2Boolean(const MagicType &arg) {
 
 ostream &operator<<(ostream &out, const MagicType &val) {
     if (val.is<List>()) {
-        out << "[ ";
-        for (const auto &item : val.get<List>()) {
-            out << item << ' ';
-        }
-        return out << "]";
+        return out << val.get<List>();
     }
     if (val.is<Number>()) {
         return out << val.get<Number>();

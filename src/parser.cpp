@@ -196,7 +196,6 @@ MagicType Parser::parse_() { // catch all exceptions
     }
 
     auto args = readOprands_(tok.tag);
-
     switch (tok.tag) {
     case TokenTag::MAKE: { // make <Name> <Val>
         if (!isValidName(args[0])) {
@@ -222,7 +221,7 @@ MagicType Parser::parse_() { // catch all exceptions
         } else {
             out_ << args[0] << endl;
         }
-        return args[0];
+        return move(args[0]);
     }
     case TokenTag::READ: { // read
         string read_buf;
@@ -283,7 +282,7 @@ MagicType Parser::parse_() { // catch all exceptions
         if (args[0].is<List>()) {
             tryParseFunc_(args[0].get<List>());
         }
-        return args[0];
+        return move(args[0]);
     }
     case TokenTag::EXPORT: {
         auto *p_global = this;
@@ -350,7 +349,7 @@ MagicType Parser::parse_() { // catch all exceptions
             throw logic_error("Syntax error: word <Word> <Word|Number|Bool>");
         }
         args[0].get<Word>().value += magic2Word(args[1]);
-        return args[0];
+        return move(args[0]);
     }
     case TokenTag::LIST_MERGE: {
         if (args[0].is<List>()) {
@@ -358,10 +357,11 @@ MagicType Parser::parse_() { // catch all exceptions
             if (args[1].is<List>()) {
                 auto &list2 = args[1].get<List>();
                 move(list2.begin(), list2.end(), back_inserter(list1));
+                tryParseFunc_(list1); // maybe closure
             } else {
                 list1.emplace_back(move(args[1]));
             }
-            return args[0];
+            return move(args[0]);
         }
         if (args[1].is<List>()) {
             auto &list2 = args[1].get<List>();
@@ -371,6 +371,7 @@ MagicType Parser::parse_() { // catch all exceptions
         return args;
     }
     case TokenTag::PAIR: {
+        tryParseFunc_(args);
         return args;
     }
     case TokenTag::JOIN: {
@@ -378,18 +379,19 @@ MagicType Parser::parse_() { // catch all exceptions
             throw logic_error("Syntax error: join <List> <value>");
         }
         args[0].get<List>().emplace_back(move(args[1]));
-        return args[0];
+        tryParseFunc_(args[0].get<List>());
+        return move(args[0]);
     }
     case TokenTag::FIRST: {
         if (args[0].is<List>()) {
-            return args[0].get<List>().front(); // FIXME: use move to elide List::[] copy
+            return args[0].get<List>().front();
         }
         string_view sv = magic2Word(args[0]);
         return Word(sv.substr(0, 1));
     }
     case TokenTag::LAST: {
         if (args[0].is<List>()) {
-            return args[0].get<List>().back(); // FIXME: use move to elide List::[] copy
+            return args[0].get<List>().back();
         }
         string_view sv = magic2Word(args[0]);
         return Word(sv.substr(sv.length() - 1));
@@ -397,7 +399,8 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::BUTFIRST: {
         if (args[0].is<List>()) {
             args[0].get<List>().pop_front();
-            return args[0]; // FIXME: use move to elide List::[] copy
+            tryParseFunc_(args[0].get<List>());
+            return move(args[0]);
         }
         string_view sv = magic2Word(args[0]);
         return Word(sv.substr(1));
@@ -405,13 +408,14 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::BUTLAST: {
         if (args[0].is<Word>()) {
             args[0].get<Word>().value.pop_back();
-            return args[0];
+            return move(args[0]);
         }
         if (args[0].is<List>()) {
             args[0].get<List>().pop_back();
-            return args[0]; // FIXME: use move to elide List::[] copy
+            tryParseFunc_(args[0].get<List>());
+            return move(args[0]);
         }
-        auto&& w = magic2Word(args[0]);
+        auto &&w = magic2Word(args[0]);
         w.value.pop_back();
         return move(w);
     }
@@ -420,7 +424,7 @@ MagicType Parser::parse_() { // catch all exceptions
             throw logic_error("`save` requires a <Word> as filename!");
         }
         saveNameSpace_(args[0].get<Word>().value);
-        return args[0];
+        return move(args[0]);
     }
     case TokenTag::LOAD: {
         if (!args[0].is<Word>()) {

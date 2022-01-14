@@ -4,7 +4,7 @@
 #include <deque>
 #include <map>
 #include <memory>
-
+#include <ostream>
 
 /// Forward Declaration
 class MagicType;
@@ -29,5 +29,7 @@ public:
     std::shared_ptr<VarTable> captures;
     [[nodiscard]] bool isFuncLike() const noexcept;
 };
+
+std::ostream &operator<<(std::ostream &out, const List &val);
 
 #endif // _LIST_H_
