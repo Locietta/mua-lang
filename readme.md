@@ -1,24 +1,81 @@
-# VSCode Makefile Template 
+# mua-lang
 
-A simple C++ Multi-file VSCode project template based on Makefile.
+A simple lisp-like functional language's interpreter, mostly based on PPL(Principle of Programming Language) course assignment of ZJU.
 
-一个基于Makefile的简易C++多文件VSCode工程模板。
+一个简单的lisp-like函数式语言解释器，基于PPL的课程大作业。
 
-## 文件结构 File Structure
+## 实现的特性
 
-主代码文件为`main.cpp`，其他的头文件和源代码文件放在include和src文件夹下
+- [x] 基本数据类型定义和运算
+- [x] 逻辑运算和if语句分支
+- [x] 列表操作
+- [x] 闭包和高阶函数
+- [x] 保存和加载命名空间（不含闭包）
+- [ ] 保存和加载闭包
+- [ ] 尾递归优化
+- [ ] 注释
+- [ ] 高精度数字
 
-生成的可执行文件名称和主代码文件相同，和主代码文件在同一个目录。
+### 语法说明 Language Specification
 
-在include和src添加文件**不需要**对Makefile做任何修改
+详细的语法说明见[mua-spec.md](./mua-spec.md).
 
-**注意**：这是个C++模板，默认不编译.c文件。如果需要纯C工程模板，将Makefile中`SRC`和`OBJ`变量里的`.cpp`替换为`.c`即可
+## mua代码示例
 
-## 使用 Usage
+### 最大公约数
 
-**mingw项目中的make叫做`mingw32-make`，需要复制一份重命名为`make`**
+一个简单的递归求解最大公约数的例子
 
-* 在主文件`main.cpp`使用code-runner可以直接编译运行
-* 按F5可以Debug（注意要选择make.exe的调试）
-* 如果需要修改主文件名称，则应修改Makefile的`BIN`变量和launch.json中的`program`字段
-* 如果使用**Clangd**，那么`make cb_gen`可以生成`compile_commands.json`
+```
+make "gcd [[a b][
+    if eq :b 0
+        [return :a]
+        [return gcd :b mod :a :b]
+]]
+print gcd 18 14
+print gcd 18 13
+print gcd 120 12
+
+# output: 2 1 12
+```
+
+### 使用Z组合子求阶乘
+
+使用Z组合子来求解阶乘，注意大量使用了闭包
+
+```
+make "fact_nicer [[rec][
+    make "g [[x][
+        if eq :x 0
+            [return 1]
+            [return mul :x rec sub :x 1]
+    ]]
+    return :g
+]]
+
+make "z_comb [[g][
+    make "t [[r][
+        make "y [[yy][
+            make "tmp r :r
+            return tmp :yy
+        ]]
+        return g :y
+    ]]
+    return t :t
+]]
+
+make "fact_z z_comb :fact_nicer
+print fact_z 5
+
+# ouput: 120
+```
+
+## License
+
+THIS PROJECT IS OPEN SOURCE UNDER MIT LICENSE, BUT WITH A LIMITATION:
+
+**ANYONE CANNOT USE ANY PART OF THIS PROJECT IN ANY COURSE OF ZJU AS COURSE ASSIGNMENT.**
+
+项目根据MIT协议开源，但有如下限制：
+
+**任何人不得在浙江大学的任何课程中使用本项目的任何部分作为课程作业。**
