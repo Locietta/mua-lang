@@ -1,19 +1,12 @@
 #include "parser.h"
+#include "common.h"
 #include "lexer.h"
 #include "list.h"
-#include "magic_type.hpp"
 #include "magic_type_ext.h"
 #include "primitive_types.h"
-#include "string_view_ext.hpp"
-#include "token.h"
 #include "token_stream.h"
-#include <cassert>
-#include <exception>
-#include <fstream>
 #include <random>
-#include <string>
-#include <unordered_map>
-#include <vector>
+
 
 using namespace std;
 using uni_real_dist = uniform_real_distribution<double>;

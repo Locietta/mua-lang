@@ -8,7 +8,6 @@
 #include <cstddef>
 #include <exception>
 #include <istream>
-#include <optional>
 #include <regex>
 #include <sstream>
 #include <string>

@@ -1,5 +1,5 @@
 #include "list.h"
-#include "lexer.h"
+#include "common.h"
 #include "magic_type.hpp"
 #include "magic_type_ext.h"
 #include "primitive_types.h"
@@ -10,7 +10,7 @@ bool List::isFuncLike() const noexcept {
     const auto &arg_list = (*this)[0].get<List>();
     const auto &func_body = (*this)[1].get<List>();
     for (const auto &arg : arg_list) {
-        if (!arg.is<Word>() || !Lexer::nameMatcher(arg.get<Word>())) return false;
+        if (!arg.is<Word>() || !nameMatcher(arg.get<Word>())) return false;
     }
     return !std::any_of(func_body.begin(), func_body.end(),
                         [](auto i) { return !i.valid(); });

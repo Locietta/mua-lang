@@ -2,6 +2,7 @@
 #define _MAGIC_TYPE_EXT_H_
 
 #include <ostream>
+#include <string_view>
 
 class List;
 class Word;

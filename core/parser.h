@@ -1,13 +1,7 @@
 #ifndef _PARSER_H_
 #define _PARSER_H_
 
-#include <map>
-#include <ostream>
-#include <ref_ptr.h>
-
-namespace std {
-extern std::ostream cout;
-} // namespace std
+#include "ref_ptr.hpp"
 
 class MagicType;
 class TokenStream;
