@@ -1,11 +1,11 @@
 #include "token_stream.h"
+#include "common.h"
 #include "lexer.h"
 #include "list.h"
 #include "magic_type.hpp"
 #include "primitive_types.h"
 #include "token.h"
-#include <exception>
-#include <string>
+
 
 using std::string;
 
@@ -51,7 +51,7 @@ Token TokenStream::extract() {
             it_->get<Word>().value = move(str);
             return {TokenTag::DEFER};
         }
-        if (Lexer::nameMatcher(str)) {
+        if (nameMatcher(str)) {
             ++it_;
             if (auto op_tag = Lexer::opMatcher(str); op_tag != TokenTag::UNKNOWN) {
                 return op_tag;

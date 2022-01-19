@@ -2,8 +2,6 @@
 #include "common.h"
 #include "list.h"
 #include "primitive_types.h"
-#include <exception>
-#include <optional>
 
 using namespace std;
 

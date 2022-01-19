@@ -1,9 +1,5 @@
 #include "primitive_types.h"
-#include "string_view_ext.hpp"
-#include "token.h"
-#include <cassert>
-#include <string>
-#include <string_view>
+#include "common.h"
 
 using namespace std;
 

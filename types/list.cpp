@@ -1,9 +1,7 @@
 #include "list.h"
 #include "common.h"
-#include "magic_type.hpp"
 #include "magic_type_ext.h"
 #include "primitive_types.h"
-#include <algorithm>
 
 bool List::isFuncLike() const noexcept {
     if (!(size() == 2 && (*this)[0].is<List>() && (*this)[1].is<List>())) return false;

@@ -2,7 +2,6 @@
 #define _TOKEN_H_
 
 #include "magic_type.hpp"
-#include <string>
 #include <utility>
 
 // clang-format off

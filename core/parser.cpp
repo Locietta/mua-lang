@@ -5,8 +5,6 @@
 #include "magic_type_ext.h"
 #include "primitive_types.h"
 #include "token_stream.h"
-#include <random>
-
 
 using namespace std;
 using uni_real_dist = uniform_real_distribution<double>;
@@ -144,7 +142,7 @@ MagicType Parser::runList_(List const &list) {
 }
 
 static bool isValidName(const MagicType &val) {
-    return val.is<Word>() && Lexer::nameMatcher(val.get<Word>());
+    return val.is<Word>() && nameMatcher(val.get<Word>());
 }
 
 MagicType Parser::parse_() { // catch all exceptions
@@ -219,7 +217,7 @@ MagicType Parser::parse_() { // catch all exceptions
     case TokenTag::READ: { // read
         string read_buf;
         cin >> read_buf;
-        if (Lexer::numberMatcher(read_buf)) {
+        if (numberMatcher(read_buf)) {
             return Number(svto<double>(read_buf));
         }
         return Word(move(read_buf));
@@ -245,7 +243,7 @@ MagicType Parser::parse_() { // catch all exceptions
         return Boolean(isName_(args[0]));
     }
     case TokenTag::IS_NUMBER: { // isnumber <Word|Number>
-        if (args[0].is<Word>() && Lexer::numberMatcher(args[0].get<Word>())) {
+        if (args[0].is<Word>() && numberMatcher(args[0].get<Word>())) {
             return Boolean(true);
         }
         return Boolean(args[0].is<Number>());
@@ -327,7 +325,7 @@ MagicType Parser::parse_() { // catch all exceptions
         List ret;
         transform(list_toks.begin(), list_toks.end(), back_inserter(ret),
                   [](string_view sv) -> MagicType {
-                      if (Lexer::numberMatcher(sv)) {
+                      if (numberMatcher(sv)) {
                           return Number(svto<double>(sv));
                       }
                       if (sv == "true" || sv == "false") {
