@@ -1,20 +1,7 @@
 #include "lexer.h"
+#include "common.h"
 #include "list.h"
-#include "magic_type.hpp"
 #include "primitive_types.h"
-#include "string_view_ext.hpp"
-#include "token.h"
-#include <cctype>
-#include <cstddef>
-#include <exception>
-#include <istream>
-#include <optional>
-#include <regex>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 
 using namespace std;
 
@@ -90,7 +77,7 @@ static string extractListWord(istream &in) {
         const auto ch = in.peek();
         if (in.eof()) throw logic_error("Unmatched brackets");
         if (isspace(ch) || ch == '[' || ch == ']') break;
-        tmp.push_back(in.get());
+        tmp.push_back((char) in.get());
     }
     return tmp;
 }
@@ -146,18 +133,8 @@ TokenTag Lexer::opMatcher(string_view sv) {
     return TokenTag::UNKNOWN;
 }
 
-bool Lexer::nameMatcher(std::string_view sv) {
-    const static regex name_matcher{R"([a-zA-Z_][a-zA-Z0-9_]*)"};
-    return regex_match(sv, name_matcher);
-}
-
-bool Lexer::numberMatcher(std::string_view sv) {
-    const static regex number_matcher{R"xx(-?([1-9][0-9]*|0)(\.[0-9]*)?)xx"};
-    return regex_match(sv, number_matcher);
-}
-
 static MagicType listLiteralMatcher(string_view sv) {
-    if (Lexer::numberMatcher(sv)) {
+    if (numberMatcher(sv)) {
         return Number(svto<double>(sv));
     }
     if (sv == "true" || sv == "false") {
@@ -171,10 +148,10 @@ static Token globalMatcher(string_view sv) {
     if (sv == "true" || sv == "false") {
         return {TokenTag::BOOL, Boolean(sv == "true")};
     }
-    if (Lexer::numberMatcher(sv)) {
+    if (numberMatcher(sv)) {
         return {TokenTag::NUMBER, Number(svto<double>(sv))};
     }
-    if (Lexer::nameMatcher(sv)) {
+    if (nameMatcher(sv)) {
         if (auto op_tag = Lexer::opMatcher(sv); op_tag != TokenTag::UNKNOWN) {
             return op_tag;
         }

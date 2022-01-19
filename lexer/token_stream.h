@@ -4,7 +4,7 @@
 #include "lexer.h"
 #include "list.h"
 #include "magic_type.hpp"
-#include "ref_ptr.h"
+#include "ref_ptr.hpp"
 
 class Token;
 

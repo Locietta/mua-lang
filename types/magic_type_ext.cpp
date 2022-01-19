@@ -1,11 +1,7 @@
 #include "magic_type_ext.h"
-#include "lexer.h"
+#include "common.h"
 #include "list.h"
-#include "magic_type.hpp"
 #include "primitive_types.h"
-#include "string_view_ext.hpp"
-#include <exception>
-#include <optional>
 
 using namespace std;
 
@@ -18,7 +14,7 @@ Number magic2Number(const MagicType &arg) {
     }
     if (arg.is<Word>()) {
         const auto &word = arg.get<Word>();
-        if (Lexer::numberMatcher(word)) {
+        if (numberMatcher(word)) {
             return svto<double>(word);
         }
         throw logic_error("Bad Conversion from <Word> to <Number>");
